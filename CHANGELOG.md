@@ -1,0 +1,39 @@
+
+
+## [1.0.4] - 2025-10-26
+
+- Merge remote-tracking branch 'origin/main'
+- fix: try 7 manual workflow...
+
+## [1.0.3](https://github.com/dvos-tools/blogger/compare/v1.0.2...v1.0.3) (2025-10-26)
+
+
+### Bug Fixes
+
+* try 3 of a version bumping without a GitHub tag push ([7582eca](https://github.com/dvos-tools/blogger/commit/7582ecad0d3783b0feda4a559ea378a561f5edcc))
+* try 4 for propper release workflow... ([4f44076](https://github.com/dvos-tools/blogger/commit/4f4407681efc1e31ee88c7d30ed0b048681770f7))
+* try 5 at proper release... ([62f82fc](https://github.com/dvos-tools/blogger/commit/62f82fc79660f8af5c1e9abcf2f6cb61bea89154))
+* try 6 missing dependencies ([1c949da](https://github.com/dvos-tools/blogger/commit/1c949da052d47926e626c116cdb4c5a683fbc7b7))
+* try 7 I cant... ([0272e12](https://github.com/dvos-tools/blogger/commit/0272e12820cdbddf25258e40da53830a3ecc1f11))
+
+## [1.0.2](https://github.com/dvos-tools/blogger/compare/v1.0.1...v1.0.2) (2025-10-26)
+
+
+### Bug Fixes
+
+* fixing the unity workflow by not auto creating a tag ([b21a075](https://github.com/dvos-tools/blogger/commit/b21a075b847a29ab0cee1cfea9c76fb0af520a99))
+* try 2 at version bumping without publishing a tag ([d204b8d](https://github.com/dvos-tools/blogger/commit/d204b8dfc9a22064d289dff32e6d6de752f05980))
+
+## [1.0.1](https://github.com/dvos-tools/blogger/compare/v1.0.0...v1.0.1) (2025-10-26)
+
+
+### Features
+
+* adding file logging and auto logs Debug.Log statements ([d063a00](https://github.com/dvos-tools/blogger/commit/d063a0013a33146b4eb25c35c7232009c30c7dab))
+
+# 1.0.0 (2025-10-26)
+
+
+### Bug Fixes
+
+* better versioning release workflow ([c247363](https://github.com/dvos-tools/blogger/commit/c247363d31bd76d9ef629c1dbdfe55c08dd96bc8))

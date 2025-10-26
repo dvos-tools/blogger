@@ -1,0 +1,21 @@
+{
+  "name": "com.dvos-tools.blogger",
+  "version": "1.0.4",
+  "displayName": "Better Logger",
+  "description": "Better Unity Logging tool supporting Jaeger Tracing and much more",
+  "unity": "6000.0",
+  "author": {
+    "name": "david-vos",
+    "email": "dev@dvos.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dvos-tools/blogger.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dvos-tools/blogger/issues"
+  },
+  "homepage": "https://github.com/dvos-tools/blogger#readme",
+  "dependencies": {},
+  "devDependencies": {}
+}

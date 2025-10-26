@@ -1,0 +1,61 @@
+using UnityEngine;
+
+namespace com.DvosTools.blogger.Service
+{
+    /// <summary>
+    /// Singleton class that automatically catches all Unity logs, warnings, and errors by listening to Application.logMessageReceivedThreaded
+    /// </summary>
+    internal sealed class UnityLogCatcher
+    {
+        private static UnityLogCatcher _instance;
+        private bool IsInitialized { get; set; }
+        private UnityLogCatcher()
+        {
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoInitialize()
+        {
+            _instance ??= new UnityLogCatcher();
+            if (_instance.IsInitialized) return;
+            
+            Application.logMessageReceivedThreaded += OnLogMessageReceived;
+            _instance.IsInitialized = true;
+        }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoShutdown()
+        {
+            // Register for application quit event
+            Application.quitting += () =>
+            {
+                if (_instance is not { IsInitialized: true }) return;
+                Application.logMessageReceivedThreaded -= OnLogMessageReceived;
+                _instance.IsInitialized = false;
+            } ;
+        }
+        
+        /// <summary>
+        /// Handle Unity log messages received on any thread
+        /// </summary>
+        /// <param name="logString">The log message</param>
+        /// <param name="stackTrace">The stack trace</param>
+        /// <param name="type">The log type (Log, Warning, Error, Exception, Assert)</param>
+        private static void OnLogMessageReceived(string logString, string stackTrace, LogType type)
+        {
+            // Direct method calls - you can add your own processing here
+            ProcessLogMessage(logString, stackTrace, type);
+        }
+        
+        /// <summary>
+        /// Process the received log message - override this method to add your own logic
+        /// </summary>
+        /// <param name="logString">The log message</param>
+        /// <param name="stackTrace">The stack trace</param>
+        /// <param name="type">The log type</param>
+        private static void ProcessLogMessage(string logString, string stackTrace, LogType type)
+        {
+            BLoggerService.Instance.HandleLog(logString, stackTrace, type);
+        }
+    }
+}

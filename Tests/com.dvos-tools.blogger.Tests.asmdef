@@ -1,0 +1,14 @@
+{
+    "name": "com.dvos-tools.blogger.Tests",
+    "rootNamespace": "com.DvosTools.blogger.Tests",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

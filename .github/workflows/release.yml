@@ -1,0 +1,70 @@
+name: Version Bump Only (No Tags/Releases)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: |
+        npm install --ignore-scripts
+    
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    
+    - name: Run version bump script
+      run: |
+        node scripts/version-bump.js
+    
+    - name: Get commit author info
+      id: author
+      run: |
+        AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+        AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
+        echo "name=$AUTHOR_NAME" >> $GITHUB_OUTPUT
+        echo "email=$AUTHOR_EMAIL" >> $GITHUB_OUTPUT
+    
+    - name: Configure Git with commit author
+      run: |
+        git config --local user.name "${{ steps.author.outputs.name }}"
+        git config --local user.email "${{ steps.author.outputs.email }}"
+    
+    - name: Commit version changes
+      run: |
+        git add CHANGELOG.md package.json
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "bump: update version and changelog [skip ci]"
+          git push
+        fi
+    
+    - name: Summary
+      run: |
+        echo "✅ Version bump completed!"
+        echo "📝 CHANGELOG.md updated"
+        echo "📦 package.json updated"
+        echo ""
+        echo "🚀 Ready for manual release!"
+        echo "You can now create a tag and release manually when ready."
