@@ -1,5 +1,9 @@
 
 
+## [1.1.0] - 2025-10-26
+
+- feat!: init commit
+
 ## [1.0.4] - 2025-10-26
 
 - Merge remote-tracking branch 'origin/main'
