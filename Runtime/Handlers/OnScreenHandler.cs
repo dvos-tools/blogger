@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 using com.DvosTools.blogger.Config;
 
 namespace com.DvosTools.blogger.Handlers
@@ -15,7 +15,7 @@ namespace com.DvosTools.blogger.Handlers
         private readonly BLoggerConfig _config;
         private GameObject _onScreenTerminalPrefab;
         private GameObject _terminalInstance;
-        private Text _logTextComponent;
+        private TextMeshProUGUI _logTextComponent;
         private readonly StringBuilder _logBuilder = new StringBuilder();
         private readonly Queue<string> _logEntries = new Queue<string>();
         private int _logCount = 0;
@@ -71,21 +71,13 @@ namespace com.DvosTools.blogger.Handlers
 
             try
             {
-                // Instantiate the terminal prefab
+                // Instantiate the terminal prefab (which IS the Canvas)
                 _terminalInstance = UnityEngine.Object.Instantiate(_onScreenTerminalPrefab);
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
                 
                 // Navigate the hierarchy to find the Log Text component
-                // Structure: onScreenTerminalPrefab -> Canvas -> Terminal Panel -> Scroll View -> Log Text
-                Transform canvas = _terminalInstance.transform.Find("Canvas");
-                if (canvas == null)
-                {
-                    Debug.LogError("[OnScreenHandler] Could not find 'Canvas' in terminal prefab.");
-                    IsEnabled = false;
-                    return;
-                }
-                
-                Transform terminalPanel = canvas.Find("Terminal Panel");
+                // Structure: onScreenTerminalPrefab (Canvas) -> Terminal Panel -> Scroll View -> Viewport -> Log Text
+                Transform terminalPanel = _terminalInstance.transform.Find("Terminal Panel");
                 if (terminalPanel == null)
                 {
                     Debug.LogError("[OnScreenHandler] Could not find 'Terminal Panel' in Canvas.");
@@ -101,30 +93,34 @@ namespace com.DvosTools.blogger.Handlers
                     return;
                 }
                 
-                Transform logTextTransform = scrollView.Find("Log Text");
+                // Look for Log Text in Viewport
+                Transform viewport = scrollView.Find("Viewport");
+                Transform logTextTransform = null;
+                
+                if (viewport != null)
+                {
+                    logTextTransform = viewport.Find("Log Text");
+                }
+                
+                // Fallback: try to find Log Text directly in Scroll View
                 if (logTextTransform == null)
                 {
-                    // Try looking in Viewport
-                    Transform viewport = scrollView.Find("Viewport");
-                    if (viewport != null)
-                    {
-                        logTextTransform = viewport.Find("Log Text");
-                    }
+                    logTextTransform = scrollView.Find("Log Text");
                 }
                 
                 if (logTextTransform == null)
                 {
-                    Debug.LogError("[OnScreenHandler] Could not find 'Log Text' component in Scroll View.");
+                    Debug.LogError("[OnScreenHandler] Could not find 'Log Text' component in Scroll View/Viewport.");
                     IsEnabled = false;
                     return;
                 }
                 
-                // Get the Text component
-                _logTextComponent = logTextTransform.GetComponent<Text>();
+                // Get the TextMeshProUGUI component
+                _logTextComponent = logTextTransform.GetComponent<TextMeshProUGUI>();
                 
                 if (_logTextComponent == null)
                 {
-                    Debug.LogError("[OnScreenHandler] 'Log Text' does not have a Text component.");
+                    Debug.LogError("[OnScreenHandler] 'Log Text' does not have a TextMeshProUGUI component.");
                     IsEnabled = false;
                     return;
                 }
