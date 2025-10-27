@@ -31,6 +31,13 @@ namespace com.DvosTools.blogger.Service
         {
             var config = BLoggerConfig.Instance;
             var newHandlers = config.CreateHandlers();
+            
+            // Initialize all handlers
+            foreach (var handler in newHandlers)
+            {
+                handler.Initialize();
+            }
+            
             _handlers.AddRange(newHandlers);
         }
     }

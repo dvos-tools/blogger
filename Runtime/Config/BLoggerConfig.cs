@@ -9,7 +9,8 @@ namespace com.DvosTools.blogger.Config
     /// </summary>
     public enum LoggingHandlerType
     {
-        File
+        File,
+        OnScreen
     }
     
     /// <summary>
@@ -26,6 +27,17 @@ namespace com.DvosTools.blogger.Config
                  "• macOS: ~/Library/Application Support/unity.<companyname>.<product-name>/Editor/\n" +
                  "Note: Directories will be created automatically if they don't exist.")]
         public string logFilePath = "Logs/blogger.log";
+        
+        [Header("OnScreen Handler Settings")]
+        [Tooltip("Enable the on-screen terminal for debugging")]
+        public bool enableOnScreenTerminal = true;
+        
+        [Tooltip("Maximum number of log entries to keep in memory (higher values use more memory)")]
+        [Range(100, 5000)]
+        public int maxOnScreenLogEntries = 1000;
+        
+        [Tooltip("Prefab for the on-screen terminal")]
+        public GameObject onScreenTerminalPrefab;
         
         private static BLoggerConfig _instance;
         
@@ -70,6 +82,13 @@ namespace com.DvosTools.blogger.Config
             // Create FileHandler
             var fileHandler = new FileHandler(this);
             handlers.Add(fileHandler);
+            
+            // Create OnScreenHandler if enabled
+            if (enableOnScreenTerminal && onScreenTerminalPrefab != null)
+            {
+                var terminalHandler = new OnScreenHandler(this, onScreenTerminalPrefab);
+                handlers.Add(terminalHandler);
+            }
             
             return handlers;
         }
