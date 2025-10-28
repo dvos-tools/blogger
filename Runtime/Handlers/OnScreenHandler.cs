@@ -18,7 +18,6 @@ namespace com.DvosTools.blogger.Handlers
         private TextMeshProUGUI _logTextComponent;
         private readonly StringBuilder _logBuilder = new StringBuilder();
         private readonly Queue<string> _logEntries = new Queue<string>();
-        private int _logCount = 0;
 
         public OnScreenHandler(BLoggerConfig config, GameObject onScreenTerminalPrefab)
         {
@@ -28,20 +27,18 @@ namespace com.DvosTools.blogger.Handlers
         
         public void HandleLog(string logString, string stackTrace, LogType type)
         {
-            if (!IsEnabled || _logTextComponent == null)
-                return;
+            if (!IsEnabled || !_logTextComponent) return;
 
             // Format the log entry with color based on type
             string colorCode = GetColorForLogType(type);
             string logPrefix = GetPrefixForLogType(type);
             string timestamp = DateTime.Now.ToString("HH:mm:ss");
             
-            // Create formatted log entry
-            string formattedLog = $"<color={colorCode}>[{timestamp}] {logPrefix}: {logString}</color>";
+            // Create formatted log entry with terminal-style prompt
+            string formattedLog = $"<color={colorCode}>~> {timestamp} | {logPrefix} | {logString}</color>";
             
             // Add to queue and manage max entries
             _logEntries.Enqueue(formattedLog);
-            _logCount++;
             
             // Remove old entries if we exceed max
             while (_logEntries.Count > _config.maxOnScreenLogEntries)
@@ -62,75 +59,22 @@ namespace com.DvosTools.blogger.Handlers
 
         public void Initialize()
         {
-            if (_onScreenTerminalPrefab == null)
-            {
-                Debug.LogWarning("[OnScreenHandler] Terminal prefab is null. Cannot initialize.");
-                IsEnabled = false;
-                return;
-            }
-
             try
             {
-                // Instantiate the terminal prefab (which IS the Canvas)
+                // Instantiate terminal and navigate hierarchy: Canvas -> Terminal Panel -> Scroll View -> Viewport -> Log Text
                 _terminalInstance = UnityEngine.Object.Instantiate(_onScreenTerminalPrefab);
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
                 
-                // Navigate the hierarchy to find the Log Text component
-                // Structure: onScreenTerminalPrefab (Canvas) -> Terminal Panel -> Scroll View -> Viewport -> Log Text
-                Transform terminalPanel = _terminalInstance.transform.Find("Terminal Panel");
-                if (terminalPanel == null)
-                {
-                    Debug.LogError("[OnScreenHandler] Could not find 'Terminal Panel' in Canvas.");
-                    IsEnabled = false;
-                    return;
-                }
+                _logTextComponent = _terminalInstance.transform
+                    .Find("Terminal Panel")
+                    .Find("Scroll View")
+                    .Find("Viewport")
+                    .Find("Log Text")
+                    .GetComponent<TextMeshProUGUI>();
                 
-                Transform scrollView = terminalPanel.Find("Scroll View");
-                if (scrollView == null)
-                {
-                    Debug.LogError("[OnScreenHandler] Could not find 'Scroll View' in Terminal Panel.");
-                    IsEnabled = false;
-                    return;
-                }
-                
-                // Look for Log Text in Viewport
-                Transform viewport = scrollView.Find("Viewport");
-                Transform logTextTransform = null;
-                
-                if (viewport != null)
-                {
-                    logTextTransform = viewport.Find("Log Text");
-                }
-                
-                // Fallback: try to find Log Text directly in Scroll View
-                if (logTextTransform == null)
-                {
-                    logTextTransform = scrollView.Find("Log Text");
-                }
-                
-                if (logTextTransform == null)
-                {
-                    Debug.LogError("[OnScreenHandler] Could not find 'Log Text' component in Scroll View/Viewport.");
-                    IsEnabled = false;
-                    return;
-                }
-                
-                // Get the TextMeshProUGUI component
-                _logTextComponent = logTextTransform.GetComponent<TextMeshProUGUI>();
-                
-                if (_logTextComponent == null)
-                {
-                    Debug.LogError("[OnScreenHandler] 'Log Text' does not have a TextMeshProUGUI component.");
-                    IsEnabled = false;
-                    return;
-                }
-                
-                // Initialize the text
-                _logTextComponent.text = "<color=green>[OnScreen Terminal] Initialized</color>\n";
-                _logEntries.Enqueue("<color=green>[OnScreen Terminal] Initialized</color>");
-                
+                _logTextComponent.text = "<color=green>~> OnScreen Terminal | Initialized</color>\n";
+                _logEntries.Enqueue("<color=green>~> OnScreen Terminal | Initialized</color>");
                 IsEnabled = true;
-                Debug.Log("[OnScreenHandler] Successfully initialized on-screen terminal.");
             }
             catch (Exception ex)
             {
@@ -141,7 +85,7 @@ namespace com.DvosTools.blogger.Handlers
 
         public void Shutdown()
         {
-            if (_terminalInstance != null)
+            if (!_terminalInstance)
             {
                 UnityEngine.Object.Destroy(_terminalInstance);
                 _terminalInstance = null;
@@ -157,9 +101,6 @@ namespace com.DvosTools.blogger.Handlers
 
         public bool IsEnabled { get; private set; }
         
-        /// <summary>
-        /// Get color code for different log types
-        /// </summary>
         private string GetColorForLogType(LogType type)
         {
             return type switch
@@ -173,9 +114,6 @@ namespace com.DvosTools.blogger.Handlers
             };
         }
         
-        /// <summary>
-        /// Get prefix for different log types
-        /// </summary>
         private string GetPrefixForLogType(LogType type)
         {
             return type switch
