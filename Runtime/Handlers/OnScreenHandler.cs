@@ -10,16 +10,32 @@ namespace com.DvosTools.blogger.Handlers
     public class OnScreenHandler : ILoggingHandler
     {
         private readonly BLoggerConfig _config;
+        private GameObject _inputListenerObject;
         private GameObject _terminalInstance;
         private TextMeshProUGUI _logTextComponent;
         private readonly StringBuilder _logBuilder = new();
         private readonly Queue<string> _logEntries = new();
+        private bool _isVisible = true;
 
         private const string StartString = "Q:\\>";
 
         public OnScreenHandler(BLoggerConfig config)
         {
             _config = config;
+        }
+        
+        private class TerminalToggleComponent : MonoBehaviour
+        {
+            public BLoggerConfig config;
+            public Action OnToggle;
+            
+            private void Update()
+            {
+                if (Service.InputService.IsToggleKeyPressed(config))
+                {
+                    OnToggle?.Invoke();
+                }
+            }
         }
         
         public void HandleLog(string logString, string stackTrace, LogType type)
@@ -56,6 +72,10 @@ namespace com.DvosTools.blogger.Handlers
         {
             try
             {
+                // Create a persistent input listener object that stays active
+                _inputListenerObject = new GameObject("BLogger_InputListener");
+                UnityEngine.Object.DontDestroyOnLoad(_inputListenerObject);
+                
                 // Instantiate terminal and navigate hierarchy: Canvas -> Terminal Panel -> Scroll View -> Viewport -> Log Text
                 _terminalInstance = UnityEngine.Object.Instantiate(_config.onScreenTerminalPrefab);
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
@@ -69,6 +89,13 @@ namespace com.DvosTools.blogger.Handlers
                 
                 _logTextComponent.text = $"<color=green>{StartString} OnScreen Terminal | Initialized</color>\n";
                 _logEntries.Enqueue($"<color=green>{StartString} OnScreen Terminal | Initialized</color>");
+                
+                // Add a toggle component to the persistent input listener (not the terminal itself)
+                // This ensures it keeps receiving input even when the terminal is hidden
+                var toggleComponent = _inputListenerObject.AddComponent<TerminalToggleComponent>();
+                toggleComponent.config = _config;
+                toggleComponent.OnToggle = ToggleVisibility;
+                
                 IsEnabled = true;
             }
             catch (Exception ex)
@@ -77,13 +104,29 @@ namespace com.DvosTools.blogger.Handlers
                 IsEnabled = false;
             }
         }
+        
+        private void ToggleVisibility()
+        {
+            if (!_terminalInstance) return;
+            
+            _isVisible = !_isVisible;
+            _terminalInstance.SetActive(_isVisible);
+            
+            Debug.Log($"[OnScreenHandler] Terminal visibility toggled: {(_isVisible ? "Shown" : "Hidden")}");
+        }
 
         public void Shutdown()
         {
-            if (!_terminalInstance)
+            if (_terminalInstance)
             {
                 UnityEngine.Object.Destroy(_terminalInstance);
                 _terminalInstance = null;
+            }
+            
+            if (_inputListenerObject)
+            {
+                UnityEngine.Object.Destroy(_inputListenerObject);
+                _inputListenerObject = null;
             }
             
             _logTextComponent = null;

@@ -2,15 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 namespace com.DvosTools.blogger.Config
 {
-    /// <summary>
-    /// Enum defining available logging handler types
-    /// </summary>
-    public enum LoggingHandlerType
+    public enum InputSystemType
     {
-        File,
-        OnScreen
+        LegacyInputManager,
+        NewInputSystem
     }
     
     /// <summary>
@@ -38,6 +39,18 @@ namespace com.DvosTools.blogger.Config
         
         [Tooltip("Prefab for the on-screen terminal")]
         public GameObject onScreenTerminalPrefab;
+        
+        [Header("Input Settings")]
+        [Tooltip("Which input system to use for toggle shortcut")]
+        public InputSystemType inputSystemType = InputSystemType.LegacyInputManager;
+        
+        [Tooltip("Keyboard shortcut for Legacy Input Manager (KeyCode)")]
+        public KeyCode legacyToggleKey = KeyCode.BackQuote;
+        
+        #if ENABLE_INPUT_SYSTEM
+        [Tooltip("Keyboard shortcut for New Input System (Key)")]
+        public Key newInputToggleKey = Key.Backquote;
+        #endif
         
         private static BLoggerConfig _instance;
         
