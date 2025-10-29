@@ -86,7 +86,7 @@ namespace com.DvosTools.blogger.Config
             // Create OnScreenHandler if enabled
             if (enableOnScreenTerminal && onScreenTerminalPrefab != null)
             {
-                var terminalHandler = new OnScreenHandler(this, onScreenTerminalPrefab);
+                var terminalHandler = new OnScreenHandler(this);
                 handlers.Add(terminalHandler);
             }
             

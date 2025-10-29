@@ -7,22 +7,19 @@ using com.DvosTools.blogger.Config;
 
 namespace com.DvosTools.blogger.Handlers
 {
-    /// <summary>
-    /// On-screen terminal handler that displays logs in a transparent overlay similar to Quantum Console
-    /// </summary>
     public class OnScreenHandler : ILoggingHandler
     {
         private readonly BLoggerConfig _config;
-        private GameObject _onScreenTerminalPrefab;
         private GameObject _terminalInstance;
         private TextMeshProUGUI _logTextComponent;
-        private readonly StringBuilder _logBuilder = new StringBuilder();
-        private readonly Queue<string> _logEntries = new Queue<string>();
+        private readonly StringBuilder _logBuilder = new();
+        private readonly Queue<string> _logEntries = new();
 
-        public OnScreenHandler(BLoggerConfig config, GameObject onScreenTerminalPrefab)
+        private const string StartString = "Q:\\>";
+
+        public OnScreenHandler(BLoggerConfig config)
         {
             _config = config;
-            _onScreenTerminalPrefab = onScreenTerminalPrefab;
         }
         
         public void HandleLog(string logString, string stackTrace, LogType type)
@@ -31,11 +28,9 @@ namespace com.DvosTools.blogger.Handlers
 
             // Format the log entry with color based on type
             string colorCode = GetColorForLogType(type);
-            string logPrefix = GetPrefixForLogType(type);
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
             
             // Create formatted log entry with terminal-style prompt
-            string formattedLog = $"<color={colorCode}>~> {timestamp} | {logPrefix} | {logString}</color>";
+            string formattedLog = $"<color={colorCode}>{StartString} {logString}</color>";
             
             // Add to queue and manage max entries
             _logEntries.Enqueue(formattedLog);
@@ -62,7 +57,7 @@ namespace com.DvosTools.blogger.Handlers
             try
             {
                 // Instantiate terminal and navigate hierarchy: Canvas -> Terminal Panel -> Scroll View -> Viewport -> Log Text
-                _terminalInstance = UnityEngine.Object.Instantiate(_onScreenTerminalPrefab);
+                _terminalInstance = UnityEngine.Object.Instantiate(_config.onScreenTerminalPrefab);
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
                 
                 _logTextComponent = _terminalInstance.transform
@@ -72,8 +67,8 @@ namespace com.DvosTools.blogger.Handlers
                     .Find("Log Text")
                     .GetComponent<TextMeshProUGUI>();
                 
-                _logTextComponent.text = "<color=green>~> OnScreen Terminal | Initialized</color>\n";
-                _logEntries.Enqueue("<color=green>~> OnScreen Terminal | Initialized</color>");
+                _logTextComponent.text = $"<color=green>{StartString} OnScreen Terminal | Initialized</color>\n";
+                _logEntries.Enqueue($"<color=green>{StartString} OnScreen Terminal | Initialized</color>");
                 IsEnabled = true;
             }
             catch (Exception ex)
@@ -103,27 +98,15 @@ namespace com.DvosTools.blogger.Handlers
         
         private string GetColorForLogType(LogType type)
         {
+            // TODO: Find some good colours for this
             return type switch
             {
                 LogType.Error => "red",
-                LogType.Assert => "red",
+                LogType.Assert => "blue",
                 LogType.Warning => "yellow",
                 LogType.Log => "white",
-                LogType.Exception => "red",
+                LogType.Exception => "yellow",
                 _ => "white"
-            };
-        }
-        
-        private string GetPrefixForLogType(LogType type)
-        {
-            return type switch
-            {
-                LogType.Error => "ERROR",
-                LogType.Assert => "ASSERT",
-                LogType.Warning => "WARN",
-                LogType.Log => "INFO",
-                LogType.Exception => "EXCEPTION",
-                _ => "LOG"
             };
         }
     }
