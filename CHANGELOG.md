@@ -1,5 +1,13 @@
 
 
+## [1.3.0] - 2025-10-30
+
+- fix: inf loop fixes with debug.log and exceptions being thrown inside of the handers (#3)
+- bump: update version and changelog [skip ci]
+- feat: on screen debugger (#1)
+- bump: update version and changelog [skip ci]
+- feat!: init commit
+
 ## [1.2.0] - 2025-10-30
 
 - feat: on screen debugger (#1)
