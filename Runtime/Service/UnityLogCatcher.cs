@@ -55,22 +55,10 @@ namespace com.DvosTools.blogger.Service
             if (_isProcessing) return;
             
             _isProcessing = true;
-            try 
+            try
             {
                 // Direct method calls - you can add your own processing here
                 ProcessLogMessage(logString, stackTrace, type);
-            } 
-            catch (UnitLogCatcherException)
-            {
-                // Do not handle UnitLogCatcherException - let it propagate
-                // This allows exceptions from within to escape without being caught
-                throw;
-            }
-            catch (Exception ex)
-            {
-                // Wrap any other exception in UnitLogCatcherException and re-throw
-                // This prevents infinite loops while still propagating the error
-                throw new UnitLogCatcherException("Error processing log message", ex);
             }
             finally
             {

@@ -19,13 +19,28 @@ namespace com.DvosTools.blogger.Service
         
         public void HandleLog(string logString, string stackTrace, LogType type)
         {
-            _handlers.ForEach(handler => 
+            List<Exception> exceptions = new List<Exception>();
+            
+            foreach (var handler in _handlers)
             {
-                if (handler.IsEnabled)
+                if (!handler.IsEnabled) continue;
+                
+                try
                 {
                     handler.HandleLog(logString, stackTrace, type);
                 }
-            });
+                catch (Exception ex)
+                {
+                    // Collect all exceptions but continue processing other handlers
+                    exceptions.Add(ex);
+                }
+            }
+            
+            // If any handlers threw exceptions, re-throw them all as an AggregateException
+            if (exceptions.Count > 0)
+            {
+                throw new AggregateException("[BLogger] One or more handlers failed to process the log message", exceptions);
+            }
         }
         
         private void LoadHandlersFromConfig()
