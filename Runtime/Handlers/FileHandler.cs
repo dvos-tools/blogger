@@ -15,7 +15,6 @@ namespace com.DvosTools.blogger.Handlers
         public FileHandler(BLoggerConfig config)
         {
             _config = config;
-            Initialize();
         }
         
         public void Initialize()

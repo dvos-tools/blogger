@@ -2,14 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 namespace com.DvosTools.blogger.Config
 {
-    /// <summary>
-    /// Enum defining available logging handler types
-    /// </summary>
-    public enum LoggingHandlerType
+    public enum InputSystemType
     {
-        File
+        LegacyInputManager,
+        NewInputSystem
     }
     
     /// <summary>
@@ -26,6 +28,29 @@ namespace com.DvosTools.blogger.Config
                  "• macOS: ~/Library/Application Support/unity.<companyname>.<product-name>/Editor/\n" +
                  "Note: Directories will be created automatically if they don't exist.")]
         public string logFilePath = "Logs/blogger.log";
+        
+        [Header("OnScreen Handler Settings")]
+        [Tooltip("Enable the on-screen terminal for debugging")]
+        public bool enableOnScreenTerminal = true;
+        
+        [Tooltip("Maximum number of log entries to keep in memory (higher values use more memory)")]
+        [Range(100, 5000)]
+        public int maxOnScreenLogEntries = 1000;
+        
+        [Tooltip("Prefab for the on-screen terminal")]
+        public GameObject onScreenTerminalPrefab;
+        
+        [Header("Input Settings")]
+        [Tooltip("Which input system to use for toggle shortcut")]
+        public InputSystemType inputSystemType = InputSystemType.LegacyInputManager;
+        
+        [Tooltip("Keyboard shortcut for Legacy Input Manager (KeyCode)")]
+        public KeyCode legacyToggleKey = KeyCode.BackQuote;
+        
+        #if ENABLE_INPUT_SYSTEM
+        [Tooltip("Keyboard shortcut for New Input System (Key)")]
+        public Key newInputToggleKey = Key.Backquote;
+        #endif
         
         private static BLoggerConfig _instance;
         
@@ -70,6 +95,13 @@ namespace com.DvosTools.blogger.Config
             // Create FileHandler
             var fileHandler = new FileHandler(this);
             handlers.Add(fileHandler);
+            
+            // Create OnScreenHandler if enabled
+            if (enableOnScreenTerminal && onScreenTerminalPrefab != null)
+            {
+                var terminalHandler = new OnScreenHandler(this);
+                handlers.Add(terminalHandler);
+            }
             
             return handlers;
         }

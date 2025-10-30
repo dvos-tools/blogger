@@ -1,5 +1,11 @@
 
 
+## [1.2.0] - 2025-10-30
+
+- feat: on screen debugger (#1)
+- bump: update version and changelog [skip ci]
+- feat!: init commit
+
 ## [1.1.0] - 2025-10-26
 
 - feat!: init commit
