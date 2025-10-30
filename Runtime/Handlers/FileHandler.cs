@@ -71,12 +71,12 @@ namespace com.DvosTools.blogger.Handlers
                 var formattedMessage = FormatLogMessage(logString, stackTrace, type);
                 File.AppendAllText(_logFilePath, formattedMessage + Environment.NewLine);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // ignored
+                throw new BLoggerException("Log file could not be written", ex);
             }
         }
-        
+       
         private string FormatLogMessage(string logString, string stackTrace, LogType type)
         {
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");

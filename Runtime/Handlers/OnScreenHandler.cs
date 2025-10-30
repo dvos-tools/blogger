@@ -148,7 +148,7 @@ namespace com.DvosTools.blogger.Handlers
                 LogType.Assert => "blue",
                 LogType.Warning => "yellow",
                 LogType.Log => "white",
-                LogType.Exception => "yellow",
+                LogType.Exception => "red",
                 _ => "white"
             };
         }

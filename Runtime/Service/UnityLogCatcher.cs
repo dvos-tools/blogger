@@ -1,3 +1,5 @@
+using System;
+using System.Data.Common;
 using UnityEngine;
 
 namespace com.DvosTools.blogger.Service
@@ -9,6 +11,11 @@ namespace com.DvosTools.blogger.Service
     {
         private static UnityLogCatcher _instance;
         private bool IsInitialized { get; set; }
+        
+        // Thread-local flag to prevent infinite loops from Debug.Log calls within the processing
+        [ThreadStatic]
+        private static bool _isProcessing;
+        
         private UnityLogCatcher()
         {
         }
@@ -43,8 +50,20 @@ namespace com.DvosTools.blogger.Service
         /// <param name="type">The log type (Log, Warning, Error, Exception, Assert)</param>
         private static void OnLogMessageReceived(string logString, string stackTrace, LogType type)
         {
-            // Direct method calls - you can add your own processing here
-            ProcessLogMessage(logString, stackTrace, type);
+            // Prevent re-entrant calls - if we're already processing a log on this thread, ignore new ones
+            // This prevents infinite loops from Debug.Log calls within the processing code
+            if (_isProcessing) return;
+            
+            _isProcessing = true;
+            try
+            {
+                // Direct method calls - you can add your own processing here
+                ProcessLogMessage(logString, stackTrace, type);
+            }
+            finally
+            {
+                _isProcessing = false;
+            }
         }
         
         /// <summary>
