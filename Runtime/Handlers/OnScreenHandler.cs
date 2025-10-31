@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using TMPro;
 using com.DvosTools.blogger.Config;
+using com.DvosTools.blogger.Service;
 
 namespace com.DvosTools.blogger.Handlers
 {
@@ -42,11 +44,14 @@ namespace com.DvosTools.blogger.Handlers
         {
             if (!IsEnabled || !_logTextComponent) return;
 
+            // Parse and replace @tokens with actual values
+            string parsedLog = ParseTerminalTokens(logString);
+
             // Format the log entry with color based on type
             string colorCode = GetColorForLogType(type);
             
             // Create formatted log entry with terminal-style prompt
-            string formattedLog = $"<color={colorCode}>{StartString} {logString}</color>";
+            string formattedLog = $"<color={colorCode}>{StartString} {parsedLog}</color>";
             
             // Add to queue and manage max entries
             _logEntries.Enqueue(formattedLog);
@@ -151,6 +156,28 @@ namespace com.DvosTools.blogger.Handlers
                 LogType.Exception => "red",
                 _ => "white"
             };
+        }
+
+        private string ParseTerminalTokens(string input)
+        {
+            if (string.IsNullOrEmpty(input) || !input.Contains("@"))
+                return input;
+
+            // Match @token, @Aggregate.instance.value, or any combination
+            var regex = new Regex(@"@([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
+            var result = regex.Replace(input, match =>
+            {
+                var token = match.Groups[1].Value;
+                
+                if (TerminalValueRegistry.Instance.TryGetValue(token, out var value))
+                {
+                    return value?.ToString() ?? "null";
+                }
+
+                return $"<color=red>@{token}?</color>";
+            });
+
+            return result;
         }
     }
 }
