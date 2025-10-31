@@ -3,20 +3,10 @@ using System;
 namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
-    /// Marks a class as a BLogger aggregate, allowing multiple instances to be tracked and accessed via terminal tokens.
-    /// The aggregate name groups all instances of this type together, creating a namespace for accessing instance values.
+    /// Marks a MonoBehaviour class as a BLogger aggregate, enabling tracking of multiple instances.
+    /// Access: @AggregateName.instanceId.valueName or !AggregateName.instanceId.actionName(args)
     /// </summary>
-    /// <remarks>
-    /// <para><b>Access Pattern:</b> @AggregateName.instanceId.valueName</para>
-    /// 
-    /// <para><b>Requirements:</b></para>
-    /// <list type="bullet">
-    /// <item>Class must inherit from MonoBehaviour</item>
-    /// <item>Class must have at least one field/property marked with [BLoggerAggregateId]</item>
-    /// <item>Class should have fields/properties/methods marked with [BLoggerValue]</item>
-    /// </list>
-    /// 
-    /// <para><b>Example Usage:</b></para>
+    /// <example>
     /// <code>
     /// [BLoggerAggregate("Players")]
     /// public class PlayerController : MonoBehaviour
@@ -27,36 +17,18 @@ namespace com.DvosTools.blogger.Attributes
     ///     [BLoggerValue("health")]
     ///     public int Health = 100;
     ///     
-    ///     [BLoggerValue("position")]
-    ///     public Vector3 Position => transform.position;
+    ///     [BLoggerAction("heal")]
+    ///     public void Heal(int amount) => Health += amount;
     /// }
     /// 
-    /// // In your logs:
-    /// BLogger.Log("Player health: @Players.player1.health at @Players.player1.position");
-    /// // Output: "Player health: 100 at (0.0, 0.0, 0.0)"
+    /// // Usage: @Players.player1.health or !Players.player1.heal(50)
     /// </code>
-    /// 
-    /// <para><b>Multiple Instances:</b></para>
-    /// <code>
-    /// // GameObject 1: PlayerController with PlayerId = "player1"
-    /// // GameObject 2: PlayerController with PlayerId = "player2"
-    /// 
-    /// BLogger.Log("P1: @Players.player1.health | P2: @Players.player2.health");
-    /// // Output: "P1: 100 | P2: 150"
-    /// </code>
-    /// </remarks>
+    /// </example>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class BLoggerAggregateAttribute : Attribute
     {
-        /// <summary>
-        /// Gets the aggregate name that groups all instances of this type.
-        /// </summary>
         public string AggregateName { get; }
 
-        /// <summary>
-        /// Marks a class as a BLogger aggregate with the specified aggregate name.
-        /// </summary>
-        /// <param name="aggregateName">The name used to group all instances (e.g., "Players", "Enemies", "Managers")</param>
         public BLoggerAggregateAttribute(string aggregateName)
         {
             AggregateName = aggregateName;
