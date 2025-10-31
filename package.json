@@ -1,6 +1,6 @@
 {
   "name": "com.dvos-tools.blogger",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "displayName": "Better Logger",
   "description": "Better Unity Logging tool supporting Jaeger Tracing and much more",
   "unity": "6000.0",
