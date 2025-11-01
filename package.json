@@ -16,6 +16,8 @@
     "url": "https://github.com/dvos-tools/blogger/issues"
   },
   "homepage": "https://github.com/dvos-tools/blogger#readme",
-  "dependencies": {},
+  "dependencies": {
+    "io.sentry.unity": "https://github.com/getsentry/unity.git"
+  },
   "devDependencies": {}
 }

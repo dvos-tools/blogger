@@ -1,0 +1,54 @@
+services:
+  sentry:
+    image: getsentry/sentry:latest
+    container_name: sentry
+    environment:
+      - SENTRY_SECRET_KEY=<generate one via sentry's setup docs or CLI>
+      - SENTRY_SINGLE_ORGANIZATION=true
+    ports:
+      - "9000:9000"
+    volumes:
+      - sentry-data:/var/lib/sentry/files
+    depends_on:
+      - sentry-redis
+      - sentry-postgres
+
+  sentry-redis:
+    image: redis:7
+    container_name: sentry-redis
+
+  sentry-postgres:
+    image: postgres:15
+    container_name: sentry-postgres
+    environment:
+      - POSTGRES_USER=sentry
+      - POSTGRES_PASSWORD=sentry
+      - POSTGRES_DB=sentry
+    volumes:
+      - sentry-postgres:/var/lib/postgresql/data
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+
+volumes:
+  sentry-data:
+  sentry-postgres:
+  grafana-data:

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
+using UnityEngine.Serialization;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -52,6 +54,12 @@ namespace com.DvosTools.blogger.Config
         public Key newInputToggleKey = Key.Backquote;
         #endif
         
+        [Tooltip("Enable Sentry")]
+        public bool enableSentry = false;
+
+        [Tooltip("URL for Sentry")] public String sentryUrl;
+        [Tooltip("URL for Loki")] public string lokiUrl;
+        
         private static BLoggerConfig _instance;
         
         /// <summary>
@@ -101,6 +109,12 @@ namespace com.DvosTools.blogger.Config
             {
                 var terminalHandler = new OnScreenHandler(this);
                 handlers.Add(terminalHandler);
+            }
+
+            if (enableSentry && sentryUrl.Length > 0 && lokiUrl.Length > 0)
+            {
+                var sentryHandler = new SentryHandler(this);
+                handlers.Add(sentryHandler);
             }
             
             return handlers;
