@@ -1,54 +1,149 @@
+# Local Development Monitoring Stack
+# Log aggregation, crash reporting, and visualization for Unity development
+#
+# Services:
+# - Sentry: Crash & error reporting (http://localhost:9000)
+# - Loki: Log storage
+# - Promtail: Ships Docker logs to Loki
+# - Grafana: Dashboards (http://localhost:3000 - no login)
+
 services:
-  sentry:
-    image: getsentry/sentry:latest
-    container_name: sentry
-    environment:
-      - SENTRY_SECRET_KEY=<generate one via sentry's setup docs or CLI>
-      - SENTRY_SINGLE_ORGANIZATION=true
-    ports:
-      - "9000:9000"
-    volumes:
-      - sentry-data:/var/lib/sentry/files
-    depends_on:
-      - sentry-redis
-      - sentry-postgres
-
-  sentry-redis:
-    image: redis:7
-    container_name: sentry-redis
-
-  sentry-postgres:
-    image: postgres:15
+  # ────────────────────────────────────────────
+  # SENTRY - Crash & Error Reporting (Minimal Setup)
+  # ────────────────────────────────────────────
+  
+  # PostgreSQL - Sentry Database
+  postgres:
+    image: postgres:15-alpine
     container_name: sentry-postgres
     environment:
-      - POSTGRES_USER=sentry
-      - POSTGRES_PASSWORD=sentry
-      - POSTGRES_DB=sentry
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: sentry
+      POSTGRES_DB: sentry
     volumes:
-      - sentry-postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
+  # Redis - Sentry Cache
+  redis:
+    image: redis:7-alpine
+    container_name: sentry-redis
+    restart: unless-stopped
+
+  # Sentry Web - Main UI
+  sentry-web:
+    image: getsentry/sentry:latest
+    platform: linux/amd64
+    container_name: sentry-web
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "9000:9000"
+    environment:
+      SENTRY_SECRET_KEY: "local-dev-key-change-for-production-use"
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_SINGLE_ORGANIZATION: "true"
+    volumes:
+      - sentry-data:/data
+    restart: unless-stopped
+    command: ["run", "web"]
+
+  # Sentry Worker - Background Tasks
+  sentry-worker:
+    image: getsentry/sentry:latest
+    platform: linux/amd64
+    container_name: sentry-worker
+    depends_on:
+      - redis
+      - postgres
+      - sentry-web
+    environment:
+      SENTRY_SECRET_KEY: "local-dev-key-change-for-production-use"
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_SINGLE_ORGANIZATION: "true"
+    volumes:
+      - sentry-data:/data
+    restart: unless-stopped
+    command: ["run", "worker"]
+
+  # Sentry Cron - Scheduled Tasks
+  sentry-cron:
+    image: getsentry/sentry:latest
+    platform: linux/amd64
+    container_name: sentry-cron
+    depends_on:
+      - redis
+      - postgres
+      - sentry-web
+    environment:
+      SENTRY_SECRET_KEY: "local-dev-key-change-for-production-use"
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: sentry
+      SENTRY_REDIS_HOST: redis
+      SENTRY_SINGLE_ORGANIZATION: "true"
+    volumes:
+      - sentry-data:/data
+    restart: unless-stopped
+    command: ["run", "cron"]
+
+  # ────────────────────────────────────────────
+  # LOKI - Log Storage
+  # ────────────────────────────────────────────
   loki:
     image: grafana/loki:2.9.2
     container_name: loki
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yml
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - ./loki-config.yml:/etc/loki/local-config.yml:ro
+      - loki-data:/loki
+    restart: unless-stopped
 
+  # ────────────────────────────────────────────
+  # PROMTAIL - Log Shipper
+  # ────────────────────────────────────────────
+  promtail:
+    image: grafana/promtail:latest
+    platform: linux/amd64
+    container_name: promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────
+  # GRAFANA - Dashboards
+  # ────────────────────────────────────────────
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.1.5
     container_name: grafana
     ports:
       - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+    restart: unless-stopped
 
 volumes:
+  postgres-data:
   sentry-data:
-  sentry-postgres:
+  loki-data:
   grafana-data:
+

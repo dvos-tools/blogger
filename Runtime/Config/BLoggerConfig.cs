@@ -57,8 +57,11 @@ namespace com.DvosTools.blogger.Config
         [Tooltip("Enable Sentry")]
         public bool enableSentry = false;
 
-        [Tooltip("URL for Sentry")] public String sentryUrl;
-        [Tooltip("URL for Loki")] public string lokiUrl;
+        [Tooltip("Sentry DSN (e.g., http://key@localhost:9000/projectId)")] 
+        public String sentryUrl = "";
+        
+        [Tooltip("Loki base URL (default: http://localhost:3100)")] 
+        public string lokiUrl = "http://localhost:3100";
         
         private static BLoggerConfig _instance;
         
