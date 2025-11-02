@@ -1,0 +1,260 @@
+{
+  "uid": "unity-logs",
+  "title": "Unity All Logs Dashboard",
+  "tags": ["unity", "logs"],
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "version",
+        "type": "query",
+        "label": "Version",
+        "query": "label_values(version)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "scene",
+        "type": "query",
+        "label": "Scene",
+        "query": "label_values(scene)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "platform",
+        "type": "query",
+        "label": "Platform",
+        "query": "label_values(platform)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Volume Over Time (All Levels)",
+      "type": "graph",
+      "gridPos": { "x": 0, "y": 0, "w": 16, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "A",
+          "legendFormat": "Total Logs"
+        },
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Error\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "B",
+          "legendFormat": "Errors"
+        },
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "C",
+          "legendFormat": "Warnings"
+        },
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Log\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "D",
+          "legendFormat": "Info"
+        }
+      ],
+      "yaxes": [
+        { "format": "short", "label": "Logs per minute" },
+        { "format": "short" }
+      ],
+      "xaxis": { "show": true },
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "pointradius": 5,
+      "points": false,
+      "bars": false,
+      "stack": false,
+      "percentage": false,
+      "legend": {
+        "show": true,
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "total": false,
+        "values": true
+      },
+      "nullPointMode": "null",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Logs (Last Hour)",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "blue" },
+              { "value": 1000, "color": "green" },
+              { "value": 10000, "color": "yellow" }
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Log Rate (Per Second)",
+      "type": "stat",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate({app=\"unity-client\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "blue" },
+              { "value": 10, "color": "green" },
+              { "value": 50, "color": "yellow" }
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Log Level Distribution (Last Hour)",
+      "type": "piechart",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Error\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1h]))",
+          "refId": "A",
+          "legendFormat": "Errors"
+        },
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1h]))",
+          "refId": "B",
+          "legendFormat": "Warnings"
+        },
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Log\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1h]))",
+          "refId": "C",
+          "legendFormat": "Info"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        },
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "All Recent Logs",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "targets": [
+        {
+          "expr": "{app=\"unity-client\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

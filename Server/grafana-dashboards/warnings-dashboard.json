@@ -1,0 +1,205 @@
+{
+  "uid": "unity-warnings",
+  "title": "Unity Warnings Dashboard",
+  "tags": ["unity", "warnings"],
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "version",
+        "type": "query",
+        "label": "Version",
+        "query": "label_values(version)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "scene",
+        "type": "query",
+        "label": "Scene",
+        "query": "label_values(scene)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "platform",
+        "type": "query",
+        "label": "Platform",
+        "query": "label_values(platform)",
+        "datasource": "Loki",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Warning Count Over Time",
+      "type": "graph",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1m]))",
+          "refId": "A",
+          "legendFormat": "Warnings per minute"
+        }
+      ],
+      "yaxes": [
+        { "format": "short", "label": "Count" },
+        { "format": "short" }
+      ],
+      "xaxis": { "show": true },
+      "lines": true,
+      "fill": 2,
+      "linewidth": 2,
+      "pointradius": 5,
+      "points": false,
+      "bars": false,
+      "stack": false,
+      "percentage": false,
+      "legend": {
+        "show": true,
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": false,
+        "total": false,
+        "values": true
+      },
+      "nullPointMode": "null",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Warnings (Last Hour)",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 20, "color": "yellow" },
+              { "value": 100, "color": "orange" }
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Warning Rate (Per Minute)",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate({app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"} [5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 5, "color": "orange" }
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Recent Warning Logs",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 12 },
+      "targets": [
+        {
+          "expr": "{app=\"unity-client\", level=\"Warning\", version=~\"$version\", scene=~\"$scene\", platform=~\"$platform\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

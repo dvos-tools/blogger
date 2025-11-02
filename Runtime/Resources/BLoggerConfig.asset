@@ -19,3 +19,6 @@ MonoBehaviour:
   inputSystemType: 1
   legacyToggleKey: 96
   newInputToggleKey: 4
+  enableSentry: 0
+  sentryUrl: 
+  lokiUrl: http://localhost:3100

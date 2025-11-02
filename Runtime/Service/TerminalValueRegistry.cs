@@ -233,15 +233,11 @@ namespace com.DvosTools.blogger.Service
         {
             var type = instance.GetType();
             var aggregateAttr = type.GetCustomAttribute<BLoggerAggregateAttribute>();
-            
-            if (aggregateAttr == null)
-                return;
+            if (aggregateAttr == null) return;
 
             var aggregateName = aggregateAttr.AggregateName;
             var instanceKey = GetInstanceKey(instance);
-
-            if (string.IsNullOrEmpty(instanceKey))
-                return;
+            if (string.IsNullOrEmpty(instanceKey)) return;
 
             var fullKey = (aggregateName, instanceKey);
             _registeredInstances.Remove(fullKey);
@@ -249,20 +245,12 @@ namespace com.DvosTools.blogger.Service
             var valuesToRemove = _instanceValues.Keys
                 .Where(k => k.aggregateName == aggregateName && k.instanceKey == instanceKey)
                 .ToList();
-
-            foreach (var key in valuesToRemove)
-            {
-                _instanceValues.Remove(key);
-            }
+            foreach (var key in valuesToRemove) _instanceValues.Remove(key);
 
             var actionsToRemove = _instanceActions.Keys
                 .Where(k => k.aggregateName == aggregateName && k.instanceKey == instanceKey)
                 .ToList();
-
-            foreach (var key in actionsToRemove)
-            {
-                _instanceActions.Remove(key);
-            }
+            foreach (var key in actionsToRemove) _instanceActions.Remove(key);
 
             Debug.Log($"[TerminalValueRegistry] Unregistered instance '{aggregateName}.{instanceKey}'");
         }
