@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
-using UnityEngine.Serialization;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -53,12 +51,6 @@ namespace com.DvosTools.blogger.Config
         [Tooltip("Keyboard shortcut for New Input System (Key)")]
         public Key newInputToggleKey = Key.Backquote;
         #endif
-        
-        [Tooltip("Enable Sentry")]
-        public bool enableSentry = false;
-
-        [Tooltip("Sentry DSN (e.g., http://key@localhost:9000/projectId)")] 
-        public String sentryUrl = "";
         
         [Tooltip("Loki base URL (default: http://localhost:3100)")] 
         public string lokiUrl = "http://localhost:3100";
@@ -114,10 +106,11 @@ namespace com.DvosTools.blogger.Config
                 handlers.Add(terminalHandler);
             }
 
-            if (enableSentry && sentryUrl.Length > 0 && lokiUrl.Length > 0)
+            // Create LokiHandler if configured
+            if (lokiUrl.Length > 0)
             {
-                var sentryHandler = new SentryHandler(this);
-                handlers.Add(sentryHandler);
+                var lokiHandler = new LokiHandler(this);
+                handlers.Add(lokiHandler);
             }
             
             return handlers;

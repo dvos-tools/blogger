@@ -494,3 +494,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Monitoring Server (Optional local development setup)
+# Users can set this up themselves following Server/README.md
+Server/sentry-self-hosted/
+Server/.env

@@ -1,42 +1,39 @@
-# Local Development Monitoring Stack
+# BLogger Configuration
 
-Simple monitoring for Unity development: Sentry (crash reporting) + Loki/Grafana (logs).
+This directory contains the default configuration asset for BLogger.
 
-## Quick Start
+## Configuration Asset
 
-```bash
-cd Runtime/Config
-docker compose up -d
-```
+- **`BLoggerConfig.asset`**: Main configuration for BLogger handlers (File, OnScreen, Loki)
 
-## Setup Sentry Account
+This asset is loaded from `Resources/` at runtime and controls all logging behavior.
 
-```bash
-docker compose run --rm sentry-web createuser --email admin@localhost --password admin --superuser --no-input
-```
+## Setting Up Monitoring (Optional)
 
-Or use your own credentials:
-```bash
-docker compose run --rm sentry-web createuser --email your@email.com --password yourpassword --superuser --no-input
-```
+BLogger can integrate with external monitoring services:
 
-## Access Services
+- **Loki**: For log aggregation and visualization
 
-- **Sentry**: http://localhost:9000 (crash reports)
-- **Grafana**: http://localhost:3000 (logs, no login required)
+### For Local Development/Testing
 
-## Get Sentry DSN for Unity
+If you want to run a local monitoring server for testing BLogger, see:
 
-1. Login to Sentry (http://localhost:9000)
-2. Create a Unity/C# project
-3. Copy the DSN (looks like: `http://abc123@localhost:9000/1`)
-4. Add to `BLoggerConfig.asset`:
-   - Enable Sentry: `true`
-   - Sentry URL: `<paste DSN>`
-   - Loki URL: `http://localhost:3100`
+👉 **[/Server/README.md](/Server/README.md)** - Instructions for setting up a local Loki + Grafana stack
 
-## Stop
+### For Production Use
 
-```bash
-docker compose down
-```
+Configure `BLoggerConfig.asset` to point to your production monitoring infrastructure:
+
+1. **Loki** (Log Aggregation):
+   - Set up Loki (self-hosted or Grafana Cloud)
+   - Set `Loki Url` to your Loki endpoint (e.g., `https://your-loki.com:3100`)
+
+## Default Configuration
+
+Out of the box, BLogger provides:
+- ✅ **File Handler**: Logs to `Application.persistentDataPath/logs/`
+- ✅ **OnScreen Terminal**: Press `` ` `` (backtick) to toggle in-game console
+- ❌ **Loki**: No default URL (configure endpoint to enable)
+- ❌ **Sentry**: Optional handler (won't crash if Sentry SDK not installed)
+
+All handlers can be enabled/disabled and configured via the `BLoggerConfig.asset`.
