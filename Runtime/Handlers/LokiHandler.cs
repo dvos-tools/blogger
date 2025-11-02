@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Text;
 using com.DvosTools.blogger.Config;
+using com.DvosTools.blogger.Context;
 using UnityEngine;
 
 namespace com.DvosTools.blogger.Handlers
@@ -33,12 +34,30 @@ namespace com.DvosTools.blogger.Handlers
         {
             try
             {
-                // Send all logs to Loki
+                // Context is already injected by BLoggerService, just escape for JSON
+                var escapedLog = EscapeJson(logString);
+                var escapedStack = EscapeJson(stackTrace);
+                
+                // Build complete log message with stack trace
+                var fullMessage = escapedLog;
+                if (!string.IsNullOrEmpty(escapedStack))
+                {
+                    fullMessage += $"\\n{escapedStack}";
+                }
+                
+                // Send to Loki with low-cardinality labels for efficient filtering
                 var json = $@"{{
                     ""streams"": [
                         {{
-                            ""stream"": {{ ""app"": ""unity-client"", ""level"": ""{type}"" }},
-                            ""values"": [[ ""{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000}"", ""{logString}\n{stackTrace}"" ]]
+                            ""stream"": {{ 
+                                ""app"": ""unity-client"", 
+                                ""level"": ""{type}"",
+                                ""scene"": ""{LoggingContext.CurrentScene}"",
+                                ""platform"": ""{LoggingContext.Platform}"",
+                                ""env"": ""{LoggingContext.Environment}"",
+                                ""version"": ""{LoggingContext.AppVersion}""
+                            }},
+                            ""values"": [[ ""{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000}"", ""{fullMessage}"" ]]
                         }}
                     ]
                 }}";
@@ -50,6 +69,17 @@ namespace com.DvosTools.blogger.Handlers
             {
                 Debug.LogError($"[LokiHandler] Failed to send log to Loki: {e.Message}");
             }
+        }
+
+        private string EscapeJson(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
         }
     }
 }

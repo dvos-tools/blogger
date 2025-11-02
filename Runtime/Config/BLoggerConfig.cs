@@ -52,8 +52,44 @@ namespace com.DvosTools.blogger.Config
         public Key newInputToggleKey = Key.Backquote;
         #endif
         
+        [Header("Loki Handler Settings")]
         [Tooltip("Loki base URL (default: http://localhost:3100)")] 
         public string lokiUrl = "http://localhost:3100";
+        
+        [Header("Sampling Settings")]
+        [Tooltip("Enable sampling to reduce log volume in production\n\n" +
+                 "When enabled, only a percentage of logs will be sent to handlers.\n" +
+                 "Errors and Exceptions are always logged (100% sampling).")]
+        public bool enableSampling = false;
+        
+        [Tooltip("Sample rate for Info/Log messages (0.0 = none, 1.0 = all)\n\n" +
+                 "Example: 0.1 = log 10% of info messages\n" +
+                 "Recommended for production: 0.1 - 0.5")]
+        [Range(0f, 1f)]
+        public float infoSampleRate = 1.0f;
+        
+        [Tooltip("Sample rate for Warning messages (0.0 = none, 1.0 = all)\n\n" +
+                 "Example: 0.5 = log 50% of warnings\n" +
+                 "Recommended for production: 0.5 - 1.0")]
+        [Range(0f, 1f)]
+        public float warningSampleRate = 1.0f;
+        
+        [Tooltip("Sample rate for Errors (0.0 = none, 1.0 = all)\n\n" +
+                 "Usually keep at 1.0 to capture all errors!\n" +
+                 "Only reduce if experiencing extreme log volume.")]
+        [Range(0f, 1f)]
+        public float errorSampleRate = 1.0f;
+        
+        [Tooltip("Always log Exceptions (ignores sampling)\n\n" +
+                 "Recommended: Keep enabled! Exceptions are critical.")]
+        public bool alwaysLogExceptions = true;
+        
+        [Tooltip("Max logs per second (rate limiting)\n\n" +
+                 "Prevents log storms from overwhelming services.\n" +
+                 "0 = unlimited\n" +
+                 "Recommended for production: 50-200")]
+        [Range(0, 1000)]
+        public int maxLogsPerSecond = 0;
         
         private static BLoggerConfig _instance;
         
