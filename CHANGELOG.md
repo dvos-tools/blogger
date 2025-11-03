@@ -1,5 +1,19 @@
 
 
+## [1.6.0] - 2025-11-03
+
+- feat: added auth to grafana
+- bump: update version and changelog [skip ci]
+- feat: adding loki and grafana dashboard (#5)
+- bump: update version and changelog [skip ci]
+- feat: adding attributes to the BLogger allowing custom values logging and using reflection to run code (#4)
+- bump: update version and changelog [skip ci]
+- fix: inf loop fixes with debug.log and exceptions being thrown inside of the handers (#3)
+- bump: update version and changelog [skip ci]
+- feat: on screen debugger (#1)
+- bump: update version and changelog [skip ci]
+- feat!: init commit
+
 ## [1.5.0] - 2025-11-02
 
 - feat: adding loki and grafana dashboard (#5)
