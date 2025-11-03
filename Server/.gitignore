@@ -1,0 +1,6 @@
+# Environment variables (contains passwords!)
+.env
+
+# Grafana data
+grafana-data/
+loki-data/

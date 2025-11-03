@@ -1,32 +1,23 @@
-# Simple Self-Hosted Monitoring Stack
+# Monitoring Stack
 
-Lightweight log aggregation with Loki + Grafana + Promtail. No Sentry, no Kafka, no Python - just Docker!
+Loki + Grafana + Promtail for Unity log aggregation.
 
 ## Quick Start
 
 ```bash
 cd Server
+cp .env.example .env  # Edit to change password!
 docker compose up -d
 ```
 
-## Access Services
+## Access
 
-- **Grafana**: http://localhost:3000 (log visualization, no login required)
-- **Loki API**: http://localhost:3100 (log storage)
+- **Grafana**: http://localhost:3000 (Login: `admin`/`admin`)
+- **Loki**: http://localhost:3100
 
-## Unity Configuration
+## Unity Config
 
-In `Runtime/Resources/BLoggerConfig.asset`:
-- `Loki Url`: `http://localhost:3100`
-
-LokiHandler automatically sends all Unity logs to Loki. View them in Grafana!
-
-## Grafana Setup
-
-1. Go to http://localhost:3000
-2. Click "Explore" (compass icon)
-3. Select "Loki" data source
-4. Query logs: `{container="unity-client"}`
+Set `Loki Url` to `http://localhost:3100` in BLoggerConfig.
 
 ## Stop
 
