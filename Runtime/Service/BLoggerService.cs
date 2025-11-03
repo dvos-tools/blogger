@@ -52,7 +52,9 @@ namespace com.DvosTools.blogger.Service
                 
                 try
                 {
-                    handler.HandleLog(enrichedLogString, stackTrace, type);
+                    // TerminalHandler gets raw log without context prefix (context available via command)
+                    var logToSend = handler is Handlers.TerminalHandler ? logString : enrichedLogString;
+                    handler.HandleLog(logToSend, stackTrace, type);
                 }
                 catch (Exception ex)
                 {

@@ -42,6 +42,26 @@ namespace com.DvosTools.blogger
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Error);
         }
+
+        /// <summary>
+        /// Register an instance to be accessible via the terminal
+        /// Use this for objects marked with [BLoggerAggregate] attribute
+        /// </summary>
+        /// <param name="instance">The instance to register (can be MonoBehaviour or regular object)</param>
+        public static void RegisterValue(object instance)
+        {
+            TerminalValueRegistry.Instance.RegisterInstance(instance);
+        }
+
+        /// <summary>
+        /// Unregister an instance from the terminal
+        /// Call this when the instance is destroyed or no longer needed
+        /// </summary>
+        /// <param name="instance">The instance to unregister</param>
+        public static void UnregisterValue(object instance)
+        {
+            TerminalValueRegistry.Instance.UnregisterInstance(instance);
+        }
     }
 }
 
