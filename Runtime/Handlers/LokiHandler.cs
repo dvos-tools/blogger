@@ -9,15 +9,13 @@ namespace com.DvosTools.blogger.Handlers
 {
     public class LokiHandler : ILoggingHandler
     {
-        private readonly BLoggerConfig _config;
         private static readonly HttpClient Client = new();
-        private string _lokiURL;
-        public bool IsEnabled { get; set; }
+        private readonly string _lokiURL;
+        public bool IsEnabled { get; private set; }
 
         public LokiHandler(BLoggerConfig config)
         {
-            _config = config;
-            _lokiURL = _config.lokiUrl + "/loki/api/v1/push";
+            _lokiURL = config.lokiUrl + "/loki/api/v1/push";
         }
 
         public void Initialize()
@@ -34,18 +32,18 @@ namespace com.DvosTools.blogger.Handlers
         {
             try
             {
-                // Context is already injected by BLoggerService, just escape for JSON
+                // Context is already injected by BLoggerService, escape for JSON
                 var escapedLog = EscapeJson(logString);
                 var escapedStack = EscapeJson(stackTrace);
                 
-                // Build complete log message with stack trace
+                // Build a complete log message with stack trace
                 var fullMessage = escapedLog;
                 if (!string.IsNullOrEmpty(escapedStack))
                 {
                     fullMessage += $"\\n{escapedStack}";
                 }
                 
-                // Send to Loki with low-cardinality labels for efficient filtering
+                // Send it to Loki with low-cardinality labels for efficient filtering
                 var json = $@"{{
                     ""streams"": [
                         {{

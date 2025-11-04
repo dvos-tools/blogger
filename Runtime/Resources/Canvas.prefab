@@ -191,7 +191,7 @@ GameObject:
   - component: {fileID: 8837615864355912470}
   - component: {fileID: 4270299643467871328}
   m_Layer: 5
-  m_Name: Send Button (1)
+  m_Name: Send Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

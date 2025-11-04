@@ -4,7 +4,8 @@ namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
     /// Marks a field or property as the unique instance identifier for a BLogger aggregate.
-    /// Must be used with [BLoggerAggregate]. Each instance must have a unique ID.
+    /// <br/>
+    /// Must be used with <see cref="BLoggerAggregateAttribute"/>. Each instance must have a unique ID.
     /// </summary>
     /// <example>
     /// <code>

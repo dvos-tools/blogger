@@ -3,9 +3,13 @@ using System;
 namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
-    /// Marks a method as executable via !actionName(args) tokens.
-    /// Works on both static methods (global) and instance methods (within aggregates).
-    /// Supports parameters: int, float, double, bool, string, Vector2, Vector3, enums.
+    /// Marks a method as executable via <c>!actionName(args)</c> tokens in the terminal.
+    /// <br/>
+    /// Works on both static methods (global) and instance methods (within <see cref="BLoggerAggregateAttribute"/> classes).
+    /// <br/>
+    /// <br/>
+    /// Supported parameter types: <c>int</c>, <c>float</c>, <c>double</c>, <c>bool</c>, <c>string</c>, 
+    /// <see cref="UnityEngine.Vector2"/>, <see cref="UnityEngine.Vector3"/>, enums.
     /// </summary>
     /// <example>
     /// <code>

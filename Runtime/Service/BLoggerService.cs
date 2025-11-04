@@ -4,6 +4,7 @@ using UnityEngine;
 using com.DvosTools.blogger.Handlers;
 using com.DvosTools.blogger.Config;
 using com.DvosTools.blogger.Context;
+using com.DvosTools.blogger.Handlers.Terminal;
 
 namespace com.DvosTools.blogger.Service
 {
@@ -52,7 +53,9 @@ namespace com.DvosTools.blogger.Service
                 
                 try
                 {
-                    handler.HandleLog(enrichedLogString, stackTrace, type);
+                    // TerminalHandler gets raw log without context prefix (context available via command)
+                    var logToSend = handler is TerminalHandler ? logString : enrichedLogString;
+                    handler.HandleLog(logToSend, stackTrace, type);
                 }
                 catch (Exception ex)
                 {

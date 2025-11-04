@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
+using com.DvosTools.blogger.Handlers.Terminal;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -135,10 +136,10 @@ namespace com.DvosTools.blogger.Config
             var fileHandler = new FileHandler(this);
             handlers.Add(fileHandler);
             
-            // Create OnScreenHandler if enabled
+            // Create TerminalHandler if enabled
             if (enableOnScreenTerminal && onScreenTerminalPrefab != null)
             {
-                var terminalHandler = new OnScreenHandler(this);
+                var terminalHandler = new TerminalHandler(this);
                 handlers.Add(terminalHandler);
             }
 

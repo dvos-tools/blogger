@@ -3,8 +3,9 @@ using System;
 namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
-    /// Marks a field, property, or parameterless method as accessible via @valueName tokens.
-    /// Works on both static members (global) and instance members (within aggregates).
+    /// Marks a field, property, or parameterless method as accessible via <c>@valueName</c> tokens in the terminal.
+    /// <br/>
+    /// Works on both static members (global) and instance members (within <see cref="BLoggerAggregateAttribute"/> classes).
     /// </summary>
     /// <example>
     /// <code>
