@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace com.DvosTools.blogger.Service
+namespace com.DvosTools.blogger.Handlers.Terminal
 {
     /// <summary>
     /// Registry for terminal commands with their metadata and execution logic
@@ -74,7 +74,7 @@ namespace com.DvosTools.blogger.Service
             if (string.IsNullOrWhiteSpace(commandLine))
                 return false;
 
-            var parts = TerminalService.ParseCommandLine(commandLine);
+            var parts = InputParserService.ParseCommandLine(commandLine);
             if (parts.Length == 0)
                 return false;
 
@@ -95,7 +95,7 @@ namespace com.DvosTools.blogger.Service
                 }
             }
 
-            errorMessage = $"Not found \"{commandName}\"";
+            errorMessage = $"Unknow command: \"{commandName}\"";
             return false;
         }
 
@@ -139,7 +139,7 @@ namespace com.DvosTools.blogger.Service
                 if (!string.IsNullOrWhiteSpace(command.Usage))
                     helpText.AppendLine($"    Usage: {command.Usage}");
 
-                if (command.Aliases != null && command.Aliases.Length > 0)
+                if (command.Aliases is { Length: > 0 })
                     helpText.AppendLine($"    Aliases: {string.Join(", ", command.Aliases)}");
             }
 
@@ -165,7 +165,7 @@ namespace com.DvosTools.blogger.Service
         public string GenerateCommandHelp(string commandName)
         {
             if (!_commands.TryGetValue(commandName.ToLower(), out var command))
-                return $"Not found \"{commandName}\"";
+                return $"Unknown command: \"{commandName}\"";
 
             var helpText = new StringBuilder();
             helpText.AppendLine($"Command: {command.Name}");
@@ -174,7 +174,7 @@ namespace com.DvosTools.blogger.Service
             if (!string.IsNullOrWhiteSpace(command.Usage))
                 helpText.AppendLine($"Usage: {command.Usage}");
 
-            if (command.Aliases != null && command.Aliases.Length > 0)
+            if (command.Aliases is { Length: > 0 })
                 helpText.AppendLine($"Aliases: {string.Join(", ", command.Aliases)}");
 
             return helpText.ToString();

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using UnityEngine;
-using TMPro;
 using com.DvosTools.blogger.Config;
 using com.DvosTools.blogger.Service;
+using TMPro;
+using UnityEngine;
 
-namespace com.DvosTools.blogger.Handlers
+namespace com.DvosTools.blogger.Handlers.Terminal
 {
     public class TerminalHandler : ILoggingHandler
     {
@@ -47,12 +47,14 @@ namespace com.DvosTools.blogger.Handlers
         {
             if (!IsEnabled || !_logTextComponent) return;
 
-            // Parse and replace @tokens with actual values, and execute !actions
-            // ParseTerminalTokensAndActions already handles escaping of user content
-            string parsedLog = ParseTerminalTokensAndActions(logString);
+            // Only parse tokens for normal log messages, not for errors/warnings
+            // This prevents error messages containing example syntax from being parsed
+            string parsedLog = type == LogType.Log 
+                ? ParseTerminalTokensAndActions(logString)
+                : logString;
 
             // Format the log entry with color based on type
-            string colorCode = TerminalService.GetColorForLogType(type);
+            string colorCode = TerminalHelper.GetColorForLogType(type);
             
             // Create formatted log entry with terminal-style prompt
             string formattedLog = $"<color={colorCode}>{StartString} {parsedLog}</color>";
@@ -258,7 +260,7 @@ namespace com.DvosTools.blogger.Handlers
             else
             {
                 // Show simple not found message
-                BLogger.Warn($"Not found \"{command}\"");
+                BLogger.Warn($"Unknow command: \"{command}\"");
             }
         }
         
@@ -278,10 +280,12 @@ namespace com.DvosTools.blogger.Handlers
             }
                 
             // Check if action has parentheses
-            var actionRegex = new Regex(@"![\w\.]+(?!\()");
+            // Look for ! followed by identifier that ends without a parenthesis
+            // (?![(\w\.]) ensures we're at the end of the identifier and there's no opening paren
+            var actionRegex = new Regex(@"![\w\.]+(?![(\w\.])");
             if (!actionRegex.IsMatch(input)) return true;
             
-            error = "Actions require parentheses. Expected format: !action() or !action(args)";
+            error = $"Failed to Parse: {input} Actions require parentheses. Expected format: !action() or !action(args)";
             return false;
 
         }
@@ -357,7 +361,7 @@ namespace com.DvosTools.blogger.Handlers
                         return $"<color=red>!</color>{colorizedAction} <color=cyan>[Action executed]</color>";
                     }
 
-                    return $"<color=red>Not found \"!{actionToken}\"</color>";
+                    return $"<color=red>Unknown action: \"!{actionToken}\"</color>";
                 });
             }
 
@@ -370,14 +374,14 @@ namespace com.DvosTools.blogger.Handlers
                     var token = match.Groups[1].Value;
 
                     if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
-                        return $"<color=red>@{token}?</color>";
+                        return $"<color=red>Unknown token: @{token}</color>";
                     
                     var valueStr = value?.ToString() ?? "null";
                     // Escape value string for display
                     valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
                         
                     // Colorize the value path
-                    var colorizedToken = TerminalService.ColorizeValuePath(token);
+                    var colorizedToken = TerminalHelper.ColorizeValuePath(token);
                     return $"<color=red>@</color>{colorizedToken}<color=white>=</color>{valueStr}";
 
                 });

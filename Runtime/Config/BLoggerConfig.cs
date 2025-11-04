@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
+using com.DvosTools.blogger.Handlers.Terminal;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;

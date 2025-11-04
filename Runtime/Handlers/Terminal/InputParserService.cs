@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
-namespace com.DvosTools.blogger.Service
+namespace com.DvosTools.blogger.Handlers.Terminal
 {
     /// <summary>
     /// Static service for parsing terminal input commands and action calls
@@ -45,6 +46,31 @@ namespace com.DvosTools.blogger.Service
                 Path = path,
                 Arguments = arguments
             };
+        }
+        
+        public static string[] ParseCommandLine(string commandLine)
+        {
+            var parts = new List<string>();
+            var current = new StringBuilder();
+            var inQuotes = false;
+
+            foreach (var c in commandLine)
+            {
+                if (c == '"') 
+                    inQuotes = !inQuotes;
+                else if (char.IsWhiteSpace(c) && !inQuotes)
+                {
+                    if (current.Length <= 0) continue;
+                    parts.Add(current.ToString());
+                    current.Clear();
+                }
+                else current.Append(c);
+            }
+
+            if (current.Length > 0)
+                parts.Add(current.ToString());
+
+            return parts.ToArray();
         }
 
         /// <summary>
@@ -93,6 +119,52 @@ namespace com.DvosTools.blogger.Service
                 args.Add(current.ToString().Trim());
                 current.Clear();
             }
+        }
+
+
+        public static object TryParseUnityType(string rawArg, Type targetType)
+        {
+            if (targetType == typeof(Vector2))
+                return TryParseVector2(rawArg);
+
+            if (targetType == typeof(Vector3))
+                return TryParseVector3(rawArg);
+
+            return null;
+        }
+        
+        public static Vector2? TryParseVector2(string rawArg)
+        {
+            var parts = rawArg.Split(',');
+            if (parts.Length == 2 && 
+                float.TryParse(parts[0].Trim(), out var x) && 
+                float.TryParse(parts[1].Trim(), out var y))
+            {
+                return new Vector2(x, y);
+            }
+            return null;
+        }
+
+        public static Vector3? TryParseVector3(string rawArg)
+        {
+            var parts = rawArg.Split(',');
+            if (parts.Length == 3 && 
+                float.TryParse(parts[0].Trim(), out var x) && 
+                float.TryParse(parts[1].Trim(), out var y) && 
+                float.TryParse(parts[2].Trim(), out var z))
+            {
+                return new Vector3(x, y, z);
+            }
+            return null;
+        }
+        
+        public static string StripQuotes(string arg)
+        {
+            if (arg.StartsWith("\"") && arg.EndsWith("\"") && arg.Length >= 2)
+            {
+                return arg.Substring(1, arg.Length - 2);
+            }
+            return arg;
         }
 
         private class ParserState

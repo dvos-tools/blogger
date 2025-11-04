@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
 using com.DvosTools.blogger.Attributes;
+using UnityEngine;
 
-namespace com.DvosTools.blogger.Service
+namespace com.DvosTools.blogger.Handlers.Terminal
 {
 public class TerminalValueRegistry
 {
@@ -144,7 +144,7 @@ public class TerminalValueRegistry
         var aggregateName = aggregateAttribute.AggregateName;
 
         // Find the field or property marked with [BLoggerAggregateId]
-        var instanceKey = TerminalService.GetInstanceKey(instance);
+        var instanceKey = TerminalHelper.GetInstanceKey(instance);
         if (string.IsNullOrEmpty(instanceKey))
         {
             Debug.LogWarning($"[TerminalValueRegistry] Instance of type {type.Name} has no [BLoggerAggregateId] field/property defined");
@@ -156,7 +156,13 @@ public class TerminalValueRegistry
         if (_registeredInstances.TryGetValue(fullKey, out var existing))
         {
             if (existing.IsAlive && existing.Target != null)
+            {
+                // If it's the exact same instance, skip re-registration
+                if (ReferenceEquals(existing.Target, instance))
+                    return;
+                
                 Debug.LogWarning($"[TerminalValueRegistry] Instance '{aggregateName}.{instanceKey}' already registered. Overwriting.");
+            }
         }
 
         _registeredInstances[fullKey] = new WeakReference(instance);
@@ -229,7 +235,7 @@ public class TerminalValueRegistry
         if (aggregateAttr == null) return;
 
         var aggregateName = aggregateAttr.AggregateName;
-        var instanceKey = TerminalService.GetInstanceKey(instance);
+        var instanceKey = TerminalHelper.GetInstanceKey(instance);
         if (string.IsNullOrEmpty(instanceKey)) return;
 
         var fullKey = (aggregateName, instanceKey);
@@ -254,11 +260,14 @@ public class TerminalValueRegistry
 
         var parts = token.Split('.');
 
-        // Static value: @fps
-        if (parts.Length == 1)
+        switch (parts.Length)
         {
-            if (_staticValues.TryGetValue(token, out var accessor))
+            // Static value: @fps
+            case 1:
             {
+                if (!_staticValues.TryGetValue(token, out var accessor))
+                    return false;
+            
                 try
                 {
                     value = accessor();
@@ -269,32 +278,37 @@ public class TerminalValueRegistry
                     Debug.LogError($"[TerminalValueRegistry] Error accessing @{token}: {ex.Message}");
                     return false;
                 }
+
+                break;
             }
-        }
-        // Instance value: @AggregateName.instanceKey.valueName
-        else if (parts.Length == 3)
-        {
-            var aggregateName = parts[0];
-            var instanceKey = parts[1];
-            var valueName = parts[2];
-
-            var key = (aggregateName, instanceKey, valueName);
-
-            if (!_instanceValues.TryGetValue(key, out var accessor)) return false;
-
-            try
+            // Instance value: @AggregateName.instanceKey.valueName
+            case 3:
             {
-                value = accessor();
-                return true;
+                var aggregateName = parts[0];
+                var instanceKey = parts[1];
+                var valueName = parts[2];
+
+                var key = (aggregateName, instanceKey, valueName);
+
+                if (!_instanceValues.TryGetValue(key, out var accessor))
+                    return false;
+
+                try
+                {
+                    value = accessor();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[TerminalValueRegistry] Error accessing @{token}: {ex.Message}");
+                    return false;
+                }
+
+                break;
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[TerminalValueRegistry] Error accessing @{token}: {ex.Message}");
+            default:
                 return false;
-            }
         }
-
-        return false;
     }
 
     public bool IsAggregateType(Type type)
@@ -371,7 +385,7 @@ public class TerminalValueRegistry
 
         try
         {
-            rawArg = TerminalService.StripQuotes(rawArg);
+            rawArg = InputParserService.StripQuotes(rawArg);
 
             // Handle enum types separately since they can't be in the switch
             if (targetType.IsEnum)
@@ -388,7 +402,7 @@ public class TerminalValueRegistry
                 TypeCode.Single => float.Parse(rawArg),
                 TypeCode.Double => double.Parse(rawArg),
                 TypeCode.Boolean => bool.Parse(rawArg),
-                _ => TerminalService.TryParseUnityType(rawArg, targetType)
+                _ => InputParserService.TryParseUnityType(rawArg, targetType)
             };
 
             return result != null;

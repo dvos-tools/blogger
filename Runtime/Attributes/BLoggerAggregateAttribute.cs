@@ -3,8 +3,14 @@ using System;
 namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
-    /// Marks a MonoBehaviour class as a BLogger aggregate, enabling tracking of multiple instances.
-    /// Access: @AggregateName.instanceId.valueName or !AggregateName.instanceId.actionName(args)
+    /// Marks a <see cref="UnityEngine.MonoBehaviour"/> class as a BLogger aggregate, enabling tracking of multiple instances.
+    /// <br/>
+    /// <br/>
+    /// Terminal Access: 
+    /// <br/>
+    /// <c>@AggregateName.instanceId.valueName</c> - Read values (see <see cref="BLoggerValueAttribute"/>)
+    /// <br/>
+    /// <c>!AggregateName.instanceId.actionName(args)</c> - Execute actions (see <see cref="BLoggerActionAttribute"/>)
     /// </summary>
     /// <example>
     /// <code>
