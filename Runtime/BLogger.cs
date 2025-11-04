@@ -25,7 +25,7 @@ namespace com.DvosTools.blogger
         /// BLogger.Log("Health: " + health, includeStackTrace: true);
         /// </code>
         /// </example>
-        public static void Log(object message, bool includeStackTrace = false)
+        public static void Log(object? message, bool includeStackTrace = false)
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Log);
@@ -43,7 +43,7 @@ namespace com.DvosTools.blogger
         /// BLogger.Warn("Low health detected");
         /// </code>
         /// </example>
-        public static void Warn(object message, bool includeStackTrace = false)
+        public static void Warn(object? message, bool includeStackTrace = false)
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Warning);
@@ -61,7 +61,7 @@ namespace com.DvosTools.blogger
         /// BLogger.Error("Failed to load save file");
         /// </code>
         /// </example>
-        public static void Error(object message, bool includeStackTrace = false)
+        public static void Error(object? message, bool includeStackTrace = false)
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Error);

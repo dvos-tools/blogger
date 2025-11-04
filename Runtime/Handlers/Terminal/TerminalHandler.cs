@@ -22,6 +22,11 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private readonly Queue<string> _logEntries = new();
         private bool _isVisible = true;
 
+        // Command history
+        private readonly List<string> _commandHistory = new();
+        private int _historyIndex = -1;
+        private string _currentInput = "";
+
         private const string StartString = "Q:\\>";
 
         public TerminalHandler(BLoggerConfig config)
@@ -33,13 +38,14 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         {
             public BLoggerConfig config;
             public Action OnToggle;
+            public Action OnUpArrow;
+            public Action OnDownArrow;
             
             private void Update()
             {
-                if (Service.InputService.IsToggleKeyPressed(config))
-                {
-                    OnToggle?.Invoke();
-                }
+                if (InputService.IsToggleKeyPressed(config)) OnToggle?.Invoke();
+                if (InputService.IsUpArrowPressed(config)) OnUpArrow?.Invoke();
+                if (InputService.IsDownArrowPressed(config)) OnDownArrow?.Invoke();
             }
         }
         
@@ -124,16 +130,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 _logEntries.Enqueue($"<color=green>{StartString} OnScreen Terminal | Initialized</color>");
                 
                 // Set up input field to handle Enter key
-                _commandInputField.onSubmit.AddListener(OnCommandSubmitted);
+                _commandInputField.onSubmit.AddListener(_ => ExecuteCommand());
                 
                 // Set up send button
-                _sendButton.onClick.AddListener(OnSendButtonClicked);
+                _sendButton.onClick.AddListener(ExecuteCommand);
                 
                 // Add a toggle component to the persistent input listener (not the terminal itself)
                 // This ensures it keeps receiving input even when the terminal is hidden
                 var toggleComponent = _inputListenerObject.AddComponent<TerminalToggleComponent>();
                 toggleComponent.config = _config;
                 toggleComponent.OnToggle = ToggleVisibility;
+                toggleComponent.OnUpArrow = NavigateHistoryUp;
+                toggleComponent.OnDownArrow = NavigateHistoryDown;
                 
                 IsEnabled = true;
             }
@@ -176,13 +184,11 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         
         private void CopyToClipboard()
         {
-            if (_logTextComponent != null)
-            {
-                // Remove rich text tags for clean copy
-                var textToCopy = Regex.Replace(_logTextComponent.text, "<.*?>", string.Empty);
-                GUIUtility.systemCopyBuffer = textToCopy;
-                BLogger.Log("Terminal output copied to clipboard!");
-            }
+            if (_logTextComponent == null) return;
+            // Remove rich text tags for clean copy
+            var textToCopy = Regex.Replace(_logTextComponent.text, "<.*?>", string.Empty);
+            GUIUtility.systemCopyBuffer = textToCopy;
+            BLogger.Log("Terminal output copied to clipboard!");
         }
         
         private void ShowContext()
@@ -207,18 +213,6 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             
             _isVisible = !_isVisible;
             _terminalInstance.SetActive(_isVisible);
-            
-            Debug.Log($"[TerminalHandler] Terminal visibility toggled: {(_isVisible ? "Shown" : "Hidden")}");
-        }
-        
-        private void OnSendButtonClicked()
-        {
-            ExecuteCommand();
-        }
-        
-        private void OnCommandSubmitted(string text)
-        {
-            ExecuteCommand();
         }
         
         private void ExecuteCommand()
@@ -228,11 +222,51 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             string command = _commandInputField.text.Trim();
             if (string.IsNullOrWhiteSpace(command)) return;
             
+            // Add to command history
+            _commandHistory.Add(command);
+            _historyIndex = _commandHistory.Count; // Reset to end of history
+            _currentInput = "";
+            
             // Log the command being executed
             ProcessCommand(command);
             
             _commandInputField.text = "";
             _commandInputField.ActivateInputField();
+        }
+
+        private void NavigateHistoryUp()
+        {
+            if (!_isVisible || !_commandInputField || _commandHistory.Count == 0) return;
+            
+            // Save current input if we're at the end of history
+            if (_historyIndex == _commandHistory.Count)
+                _currentInput = _commandInputField.text;
+            
+            // Move back in history
+            if (_historyIndex <= 0) return;
+            _historyIndex--;
+            _commandInputField.text = _commandHistory[_historyIndex];
+            _commandInputField.MoveToEndOfLine(false, false); // Move the cursor to end
+        }
+
+        private void NavigateHistoryDown()
+        {
+            if (!_isVisible || _commandInputField == null || _commandHistory.Count == 0) return;
+            
+            // Move forward in history
+            if (_historyIndex < _commandHistory.Count - 1)
+            {
+                _historyIndex++;
+                _commandInputField.text = _commandHistory[_historyIndex];
+                _commandInputField.MoveToEndOfLine(false, false); // Move the cursor to end
+            }
+            else if (_historyIndex == _commandHistory.Count - 1)
+            {
+                // Reached the end, restore current input
+                _historyIndex = _commandHistory.Count;
+                _commandInputField.text = _currentInput;
+                _commandInputField.MoveToEndOfLine(false, false); // Move the cursor to end
+            }
         }
         
         private void ProcessCommand(string command)
@@ -302,10 +336,10 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         {
             // Clean up event listeners
             if (_commandInputField != null)
-                _commandInputField.onSubmit.RemoveListener(OnCommandSubmitted);
+                _commandInputField.onSubmit.RemoveAllListeners();
             
             if (_sendButton != null)
-                _sendButton.onClick.RemoveListener(OnSendButtonClicked);
+                _sendButton.onClick.RemoveAllListeners();
             
             if (_terminalInstance)
             {
@@ -394,7 +428,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         private static string ColorizeActionPath(string actionToken)
         {
-            // Extract path and arguments: heal(50) or Players.player1.heal(50)
+            // Extract a path and arguments: heal(50) or Players.player1.heal(50)
             var openParen = actionToken.IndexOf('(');
             if (openParen == -1)
                 return $"<color=white>{actionToken}</color>";
