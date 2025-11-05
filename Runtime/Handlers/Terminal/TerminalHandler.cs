@@ -18,9 +18,11 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private TextMeshProUGUI _logTextComponent;
         private TMP_InputField _commandInputField;
         private UnityEngine.UI.Button _sendButton;
+        private UnityEngine.UI.ScrollRect _scrollRect;
         private readonly StringBuilder _logBuilder = new();
         private readonly Queue<string> _logEntries = new();
         private bool _isVisible = true;
+        private bool _autoScroll = true; // Track if we should auto-scroll
 
         // Command history
         private readonly List<string> _commandHistory = new();
@@ -83,6 +85,22 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             
             // Update the text component
             _logTextComponent.text = _logBuilder.ToString();
+            
+            // Only auto-scroll if user hasn't manually scrolled up
+            if (_scrollRect != null && _autoScroll)
+            {
+                // Use Canvas.ForceUpdateCanvases to ensure layout is updated before scrolling
+                UnityEngine.Canvas.ForceUpdateCanvases();
+                _scrollRect.verticalNormalizedPosition = 0f;
+            }
+        }
+        
+        private void OnScrollChanged(Vector2 scrollPosition)
+        {
+            // If user scrolls up from the bottom, disable auto-scroll
+            // If they scroll back to the bottom, re-enable it
+            const float threshold = 0.01f; // Small threshold for floating point comparison
+            _autoScroll = _scrollRect.verticalNormalizedPosition <= threshold;
         }
 
         public void Initialize()
@@ -101,12 +119,16 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
                 
                 var terminalPanel = _terminalInstance.transform.Find("Terminal Panel");
+                var scrollView = terminalPanel.Find("Scroll View");
+                var viewport = scrollView.Find("Viewport");
                 
-                _logTextComponent = terminalPanel
-                    .Find("Scroll View")
-                    .Find("Viewport")
+                // Get the existing Log Text component
+                _logTextComponent = viewport
                     .Find("Log Text")
                     .GetComponent<TextMeshProUGUI>();
+                
+                // Get the Content RectTransform that the ScrollRect uses
+                var content = viewport.Find("Content").GetComponent<RectTransform>();
                 
                 // Find the command input field and send button
                 _commandInputField = terminalPanel
@@ -117,6 +139,49 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                     .Find("Send Button")
                     .GetComponent<UnityEngine.UI.Button>();
                 
+                // Get the ScrollRect component
+                _scrollRect = scrollView.GetComponent<UnityEngine.UI.ScrollRect>();
+                
+                // CRITICAL: Move Log Text to be a child of Content so ScrollRect works properly
+                _logTextComponent.transform.SetParent(content, false);
+                
+                // Reset Log Text anchors and position to fill the Content area
+                var logTextRect = _logTextComponent.GetComponent<RectTransform>();
+                logTextRect.anchorMin = new Vector2(0, 1); // Top-left anchor
+                logTextRect.anchorMax = new Vector2(1, 1); // Top-right anchor
+                logTextRect.pivot = new Vector2(0.5f, 1); // Pivot at top
+                logTextRect.anchoredPosition = Vector2.zero;
+                logTextRect.offsetMin = new Vector2(10, logTextRect.offsetMin.y); // Left padding
+                logTextRect.offsetMax = new Vector2(-10, logTextRect.offsetMax.y); // Right padding
+                
+                // Ensure the ScrollRect can receive input
+                var scrollViewImage = scrollView.GetComponent<UnityEngine.UI.Image>();
+                if (scrollViewImage != null)
+                {
+                    scrollViewImage.raycastTarget = true;
+                    // Set a minimal alpha to ensure raycasts work
+                    var color = scrollViewImage.color;
+                    color.a = 0.01f;
+                    scrollViewImage.color = color;
+                }
+                
+                // Ensure viewport Image also receives raycasts
+                var viewportImage = viewport.GetComponent<UnityEngine.UI.Image>();
+                if (viewportImage != null)
+                {
+                    viewportImage.raycastTarget = true;
+                    var color = viewportImage.color;
+                    if (color.a == 0) color.a = 0.01f;
+                    viewportImage.color = color;
+                }
+                
+                // Listen to scroll events to detect manual scrolling
+                _scrollRect.onValueChanged.AddListener(OnScrollChanged);
+                
+                // Disable horizontal scrolling, we only want vertical
+                _scrollRect.horizontal = false;
+                _scrollRect.vertical = true;
+                
                 // Configure text wrapping and overflow
                 _logTextComponent.overflowMode = TextOverflowModes.Overflow;
                 _logTextComponent.richText = true;
@@ -125,6 +190,36 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 // Enable text selection for copy/paste
                 _logTextComponent.enableWordWrapping = true;
                 _logTextComponent.isTextObjectScaleStatic = false;
+                
+                // Add ContentSizeFitter to the Content object to resize based on text
+                var contentSizeFitter = content.gameObject.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+                if (contentSizeFitter == null)
+                {
+                    contentSizeFitter = content.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                }
+                contentSizeFitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+                contentSizeFitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                
+                // Add VerticalLayoutGroup to Content to properly size based on children
+                var layoutGroup = content.gameObject.GetComponent<UnityEngine.UI.VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = content.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+                }
+                layoutGroup.childControlHeight = true;
+                layoutGroup.childControlWidth = true;
+                layoutGroup.childForceExpandHeight = false;
+                layoutGroup.childForceExpandWidth = true;
+                layoutGroup.padding = new RectOffset(10, 10, 10, 10);
+                
+                // Add LayoutElement to Log Text so VerticalLayoutGroup sizes it correctly
+                var layoutElement = _logTextComponent.gameObject.GetComponent<UnityEngine.UI.LayoutElement>();
+                if (layoutElement == null)
+                {
+                    layoutElement = _logTextComponent.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+                }
+                layoutElement.preferredHeight = -1;
+                layoutElement.flexibleHeight = 1;
                 
                 _logTextComponent.text = $"<color=green>{StartString} OnScreen Terminal | Initialized</color>\n";
                 _logEntries.Enqueue($"<color=green>{StartString} OnScreen Terminal | Initialized</color>");
@@ -226,6 +321,9 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _commandHistory.Add(command);
             _historyIndex = _commandHistory.Count; // Reset to end of history
             _currentInput = "";
+            
+            // Re-enable auto-scroll so command output is visible at the bottom
+            _autoScroll = true;
             
             // Log the command being executed
             ProcessCommand(command);
@@ -341,6 +439,9 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (_sendButton != null)
                 _sendButton.onClick.RemoveAllListeners();
             
+            if (_scrollRect != null)
+                _scrollRect.onValueChanged.RemoveAllListeners();
+            
             if (_terminalInstance)
             {
                 UnityEngine.Object.Destroy(_terminalInstance);
@@ -356,6 +457,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _logTextComponent = null;
             _commandInputField = null;
             _sendButton = null;
+            _scrollRect = null;
             _logEntries.Clear();
             _logBuilder.Clear();
             IsEnabled = false;
@@ -379,47 +481,43 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 input = actionRegex.Replace(input, match =>
                 {
                     var actionToken = match.Groups[1].Value;
-                    
-                    if (TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
-                    {
-                        // Colorize the action path
-                        var colorizedAction = ColorizeActionPath(actionToken);
-                        
-                        if (result != null)
-                        {
-                            var resultStr = result.ToString();
-                            // Escape result string for display
-                            resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
-                            return $"<color=red>!</color>{colorizedAction} <color=cyan>[Returned: {resultStr}]</color>";
-                        }
-                        return $"<color=red>!</color>{colorizedAction} <color=cyan>[Action executed]</color>";
-                    }
 
-                    return $"<color=red>Unknown action: \"!{actionToken}\"</color>";
+                    if (!TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
+                        return $"<color=red>Unknown action: \"!{actionToken}\"</color>";
+                    
+                    // Colorize the action path
+                    var colorizedAction = ColorizeActionPath(actionToken);
+
+                    if (result == null) return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
+                        
+                    var resultStr = result.ToString();
+                    // Escape result string for display
+                    resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
+                    return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
+
                 });
             }
 
             // Then, handle value tokens (@valueName)
-            if (input.Contains("@"))
+            if (!input.Contains("@")) return input;
+            
+            var valueRegex = new Regex(@"@([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
+            input = valueRegex.Replace(input, match =>
             {
-                var valueRegex = new Regex(@"@([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
-                input = valueRegex.Replace(input, match =>
-                {
-                    var token = match.Groups[1].Value;
+                var token = match.Groups[1].Value;
 
-                    if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
-                        return $"<color=red>Unknown token: @{token}</color>";
+                if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
+                    return $"<color=red>Unknown token: @{token}</color>";
+                
+                var valueStr = value?.ToString() ?? "null";
+                // Escape value string for display
+                valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
                     
-                    var valueStr = value?.ToString() ?? "null";
-                    // Escape value string for display
-                    valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
-                        
-                    // Colorize the value path
-                    var colorizedToken = TerminalHelper.ColorizeValuePath(token);
-                    return $"<color=red>@</color>{colorizedToken}<color=white>=</color>{valueStr}";
+                // Colorize the value path
+                var colorizedToken = TerminalHelper.ColorizeValuePath(token);
+                return $"<color=red>@</color>{colorizedToken}<color=white>=</color>{valueStr}";
 
-                });
-            }
+            });
 
             return input;
         }
