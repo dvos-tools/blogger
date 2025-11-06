@@ -15,12 +15,18 @@ Add to your Packages/manifest.json:
 
 ## Configuration
 
-The `BLoggerConfig` asset (found in `Resources/BLoggerConfig`) controls all logging behavior:
+On first import, BLogger automatically creates `Assets/Resources/BLoggerConfig.asset` with default settings.
 
+Edit this config to control:
 - **Handlers**: Enable/disable File, Terminal, or Loki logging
 - **Terminal Settings**: Toggle key, max log entries, scroll behavior
 - **File Logging**: Set log path, file naming, and rotation
 - **Input System**: Choose Legacy or New Input System
+- **Sampling**: Control log volume in production builds
+
+Quick access: `Tools > BLogger > Open Config`
+
+For detailed configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Terminal Usage
 

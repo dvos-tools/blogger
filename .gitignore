@@ -89,7 +89,6 @@ StyleCopReport.xml
 
 # Unity generated files (but keep .meta files for package structure)
 *.tmp
-*.unity.meta
 
 # Unity crash logs
 crashlytics-build.properties
@@ -497,3 +496,7 @@ $RECYCLE.BIN/
 # Users can set this up themselves following Server/README.md
 Server/sentry-self-hosted/
 Server/.env
+
+# BLogger Configuration
+# NOTE: The template (BLoggerConfigTemplate.asset) is part of the package and SHOULD be committed.
+# User projects will create their own BLoggerConfig.asset in their Assets/Resources/ folder.

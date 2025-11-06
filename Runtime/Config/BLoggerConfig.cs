@@ -101,27 +101,64 @@ namespace com.DvosTools.blogger.Config
         {
             get
             {
-                if (_instance == null)
-                {
-                    LoadConfig();
-                }
+                if (!_instance) LoadConfig();
                 return _instance;
             }
         }
         
         /// <summary>
-        /// Load the BLoggerConfig from Resources folder
+        /// Load the BLoggerConfig from Resources folder.
+        /// Loading priority:
+        /// 1. User's project: Assets/Resources/BLoggerConfig.asset (editable)
+        /// 2. Package template: Packages/.../BLoggerConfigTemplate.asset (read-only backup)
+        /// 3. Runtime defaults: Created on-the-fly if nothing found
         /// </summary>
         private static void LoadConfig()
         {
-            // Try to find BLoggerConfig in the Resources folder
+            #if UNITY_EDITOR
+            // PRIORITY 1: Try to load from user's project first (Assets/Resources/)
             _instance = Resources.Load<BLoggerConfig>("BLoggerConfig");
+            
+            if (_instance)
+            {
+                var assetPath = UnityEditor.AssetDatabase.GetAssetPath(_instance);
+                if (!string.IsNullOrEmpty(assetPath) && assetPath.StartsWith("Assets/"))
+                {
+                    Debug.Log($"[BLogger] Loaded config from project: {assetPath}");
+                    return;
+                }
+            }
+            
+            // PRIORITY 2: Fall back to package template if no user config exists
+            _instance = Resources.Load<BLoggerConfig>("BLoggerConfigTemplate");
+            
+            if (_instance)
+            {
+                var templatePath = UnityEditor.AssetDatabase.GetAssetPath(_instance);
+                Debug.LogWarning($"[BLogger] No config found in Assets/Resources/. Using package template: {templatePath}\n" +
+                                "This config is READ-ONLY. Create your own via: Tools > BLogger > Create Config");
+                return;
+            }
+            
+            // If we get here, package installation is broken
+            Debug.LogError("[BLogger] CRITICAL: Cannot find BLoggerConfigTemplate.asset in package! " +
+                          "Package installation may be corrupted. Please reinstall the package.");
+            #else
+            // In builds, try to load user's config
+            _instance = Resources.Load<BLoggerConfig>("BLoggerConfig");
+            
+            // Fallback to template in builds
+            if (_instance == null)
+            {
+                _instance = Resources.Load<BLoggerConfig>("BLoggerConfigTemplate");
+            }
             
             if (_instance == null)
             {
-                // Create a default config if none found
-                _instance = CreateInstance<BLoggerConfig>();
+                Debug.LogError("[BLogger] CRITICAL: Cannot find BLoggerConfig! " +
+                              "Make sure BLoggerConfig.asset or BLoggerConfigTemplate.asset exists in a Resources folder.");
             }
+            #endif
         }
         
         /// <summary>
@@ -144,12 +181,10 @@ namespace com.DvosTools.blogger.Config
             }
 
             // Create LokiHandler if configured
-            if (lokiUrl.Length > 0)
-            {
-                var lokiHandler = new LokiHandler(this);
-                handlers.Add(lokiHandler);
-            }
-            
+            if (lokiUrl.Length <= 0) return handlers;
+            var lokiHandler = new LokiHandler(this);
+            handlers.Add(lokiHandler);
+
             return handlers;
         }
         

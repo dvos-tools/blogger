@@ -1,8 +1,12 @@
 {
     "name": "com.dvos-tools.blogger.Editor",
     "rootNamespace": "com.DvosTools.blogger.Editor",
-    "references": [],
-    "includePlatforms": [],
+    "references": [
+        "com.dvos-tools.blogger"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

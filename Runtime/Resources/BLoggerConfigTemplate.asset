@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5e5bfd0cc72874aceabe4a507de98731, type: 3}
-  m_Name: BLoggerConfig
+  m_Name: BLoggerConfigTemplate
   m_EditorClassIdentifier: com.dvos-tools.blogger::com.DvosTools.blogger.Config.BLoggerConfig
   logFilePath: Logs/blogger.log
   enableOnScreenTerminal: 1
@@ -19,6 +19,10 @@ MonoBehaviour:
   inputSystemType: 1
   legacyToggleKey: 96
   newInputToggleKey: 4
-  enableSentry: 0
-  sentryUrl: 
-  lokiUrl: http://localhost:3100
+  lokiUrl: 
+  enableSampling: 0
+  infoSampleRate: 1
+  warningSampleRate: 1
+  errorSampleRate: 1
+  alwaysLogExceptions: 1
+  maxLogsPerSecond: 0
