@@ -90,8 +90,6 @@ StyleCopReport.xml
 # Unity generated files (but keep .meta files for package structure)
 *.tmp
 *.unity.meta
-*.asset.meta
-*.prefab.meta
 
 # Unity crash logs
 crashlytics-build.properties
