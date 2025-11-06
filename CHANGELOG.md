@@ -1,5 +1,10 @@
 
 
+## [1.9.1] - 2025-11-06
+
+- Merge remote-tracking branch 'origin/main'
+- fix: fixing gitognore
+
 ## [1.9.0] - 2025-11-06
 
 - docs: added readme
