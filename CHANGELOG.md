@@ -1,5 +1,13 @@
 
 
+## [1.9.2] - 2025-11-06
+
+- Merge remote-tracking branch 'origin/main'
+- fix: correct setup of config file
+- bump: update version and changelog [skip ci]
+- Merge remote-tracking branch 'origin/main'
+- fix: fixing gitognore
+
 ## [1.9.1] - 2025-11-06
 
 - Merge remote-tracking branch 'origin/main'
