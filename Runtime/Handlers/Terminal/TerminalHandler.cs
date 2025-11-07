@@ -19,6 +19,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private TMP_InputField _commandInputField;
         private UnityEngine.UI.Button _sendButton;
         private UnityEngine.UI.ScrollRect _scrollRect;
+        private TerminalResizeHandle _resizeHandle;
         private readonly StringBuilder _logBuilder = new();
         private readonly Queue<string> _logEntries = new();
         private bool _isVisible = true;
@@ -141,6 +142,19 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 
                 // Get the ScrollRect component
                 _scrollRect = scrollView.GetComponent<UnityEngine.UI.ScrollRect>();
+                
+                // Set up the resize handle
+                var resizeButton = terminalPanel.Find("ReSize");
+                if (resizeButton)
+                {
+                    _resizeHandle = resizeButton.gameObject.GetComponent<TerminalResizeHandle>();
+                    if (!_resizeHandle) _resizeHandle = resizeButton.gameObject.AddComponent<TerminalResizeHandle>();
+                    _resizeHandle.Initialize(terminalPanel.GetComponent<RectTransform>(), 200f, 1000f);
+                }
+                else
+                {
+                    Debug.LogWarning("[TerminalHandler] ReSize button not found in Terminal Panel");
+                }
                 
                 // CRITICAL: Move Log Text to be a child of Content so ScrollRect works properly
                 _logTextComponent.transform.SetParent(content, false);
@@ -433,14 +447,17 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         public void Shutdown()
         {
             // Clean up event listeners
-            if (_commandInputField != null)
+            if (_commandInputField)
                 _commandInputField.onSubmit.RemoveAllListeners();
             
-            if (_sendButton != null)
+            if (_sendButton)
                 _sendButton.onClick.RemoveAllListeners();
             
-            if (_scrollRect != null)
+            if (_scrollRect)
                 _scrollRect.onValueChanged.RemoveAllListeners();
+            
+            // Clean up resize handle
+            _resizeHandle = null;
             
             if (_terminalInstance)
             {
