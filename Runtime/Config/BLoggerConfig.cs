@@ -21,16 +21,8 @@ namespace com.DvosTools.blogger.Config
     [CreateAssetMenu(fileName = "BLoggerConfig", menuName = "BLogger/Configuration")]
     public class BLoggerConfig : ScriptableObject
     {
-        [Header("File Handler Settings")]
-        [Tooltip("Log file path (relative to persistent data path).\n\n" +
-                 "Default: 'Logs/blogger.log'\n\n" +
-                 "Platform-specific persistent data paths:\n" +
-                 "• Windows: %userprofile%\\AppData\\LocalLow\\<companyname>\\<product-name>\\\n" +
-                 "• macOS: ~/Library/Application Support/unity.<companyname>.<product-name>/Editor/\n" +
-                 "Note: Directories will be created automatically if they don't exist.")]
-        public string logFilePath = "Logs/blogger.log";
-        
-        [Header("OnScreen Handler Settings")]
+        [Header("Terminal")]
+        [Space]
         [Tooltip("Enable the on-screen terminal for debugging")]
         public bool enableOnScreenTerminal = true;
         
@@ -41,7 +33,6 @@ namespace com.DvosTools.blogger.Config
         [Tooltip("Prefab for the on-screen terminal")]
         public GameObject onScreenTerminalPrefab;
         
-        [Header("Input Settings")]
         [Tooltip("Which input system to use for toggle shortcut")]
         public InputSystemType inputSystemType = InputSystemType.LegacyInputManager;
         
@@ -56,7 +47,6 @@ namespace com.DvosTools.blogger.Config
         [Tooltip("Use Command key (Mac) or Control key (Windows/Linux) for font size shortcuts")]
         public bool useCommandKeyForFontSize = true;
         
-        [Header("Terminal Font Settings")]
         [Tooltip("Initial font size for the terminal")]
         [Range(8, 72)]
         public int terminalFontSize = 14;
@@ -69,11 +59,21 @@ namespace com.DvosTools.blogger.Config
         [Range(24, 72)]
         public int maxTerminalFontSize = 48;
         
-        [Header("Loki Handler Settings")]
+        [Header("File")]
+        [Space]
+        [Tooltip("Log file path (relative to persistent data path).\n\n" +
+                 "Default: 'Logs/blogger.log'\n\n" +
+                 "Platform-specific persistent data paths:\n" +
+                 "• Windows: %userprofile%\\AppData\\LocalLow\\<companyname>\\<product-name>\\\n" +
+                 "• macOS: ~/Library/Application Support/unity.<companyname>.<product-name>/Editor/\n" +
+                 "Note: Directories will be created automatically if they don't exist.")]
+        public string logFilePath = "Logs/blogger.log";
+        
+        [Header("WebLogging")]
+        [Space]
         [Tooltip("Loki base URL (default: http://localhost:3100)")] 
         public string lokiUrl = "http://localhost:3100";
         
-        [Header("Sampling Settings")]
         [Tooltip("Enable sampling to reduce log volume in production\n\n" +
                  "When enabled, only a percentage of logs will be sent to handlers.\n" +
                  "Errors and Exceptions are always logged (100% sampling).")]
