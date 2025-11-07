@@ -70,4 +70,4 @@ BLogger.Error("Error message");
 ```
 
 > [!NOTE]
-> This package is under active development. Breaking changes may occur before v1.0.
+> This package is under active development. Breaking changes may occur before v2.0.
