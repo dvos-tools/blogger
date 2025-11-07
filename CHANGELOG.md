@@ -1,5 +1,19 @@
 
 
+## [1.9.8] - 2025-11-07
+
+- chore: splitting up config file with headers
+- bump: update version and changelog [skip ci]
+- fix: readme and useless logging
+- bump: update version and changelog [skip ci]
+- feat: adding resizing of font (#19)
+- bump: update version and changelog [skip ci]
+- feat: resize the terminal window (#16)
+- bump: update version and changelog [skip ci]
+- docs: correct readme version number
+- bump: update version and changelog [skip ci]
+- feat: making sure that BLogger.Log() also calls Debug.Log in the background
+
 ## [1.9.7] - 2025-11-07
 
 - fix: readme and useless logging
