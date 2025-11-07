@@ -395,11 +395,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             float currentSize = _logTextComponent.fontSize;
             float newSize = Mathf.Min(currentSize + 2, _config.maxTerminalFontSize);
             
-            if (Mathf.Abs(newSize - currentSize) > 0.01f)
-            {
-                _logTextComponent.fontSize = newSize;
-                Debug.Log($"[TerminalHandler] Font size increased to {newSize}");
-            }
+            if (Mathf.Abs(newSize - currentSize) > 0.01f) _logTextComponent.fontSize = newSize;
         }
 
         private void DecreaseFontSize()
@@ -409,11 +405,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             float currentSize = _logTextComponent.fontSize;
             float newSize = Mathf.Max(currentSize - 2, _config.minTerminalFontSize);
             
-            if (Mathf.Abs(newSize - currentSize) > 0.01f)
-            {
-                _logTextComponent.fontSize = newSize;
-                Debug.Log($"[TerminalHandler] Font size decreased to {newSize}");
-            }
+            if (Mathf.Abs(newSize - currentSize) > 0.01f) _logTextComponent.fontSize = newSize;
         }
         
         private void ProcessCommand(string command)

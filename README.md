@@ -26,8 +26,6 @@ Edit this config to control:
 
 Quick access: `Tools > BLogger > Open Config`
 
-For detailed configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
-
 ## Terminal Usage
 
 Press `~` (tilde) to open the in-game terminal. Use built-in commands:
@@ -35,6 +33,7 @@ Press `~` (tilde) to open the in-game terminal. Use built-in commands:
 - `help [command]` - Show available commands
 - `copy` - Copy logs to clipboard
 - `exit` - Close terminal
+- `cmd/control [+ / -]` increase or decrease font size
 
 ## BLogger Attributes
 
