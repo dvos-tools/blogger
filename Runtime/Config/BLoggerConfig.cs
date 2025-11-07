@@ -53,6 +53,22 @@ namespace com.DvosTools.blogger.Config
         public Key newInputToggleKey = Key.Backquote;
         #endif
         
+        [Tooltip("Use Command key (Mac) or Control key (Windows/Linux) for font size shortcuts")]
+        public bool useCommandKeyForFontSize = true;
+        
+        [Header("Terminal Font Settings")]
+        [Tooltip("Initial font size for the terminal")]
+        [Range(8, 72)]
+        public int terminalFontSize = 14;
+        
+        [Tooltip("Minimum font size for the terminal")]
+        [Range(8, 36)]
+        public int minTerminalFontSize = 8;
+        
+        [Tooltip("Maximum font size for the terminal")]
+        [Range(24, 72)]
+        public int maxTerminalFontSize = 48;
+        
         [Header("Loki Handler Settings")]
         [Tooltip("Loki base URL (default: http://localhost:3100)")] 
         public string lokiUrl = "http://localhost:3100";

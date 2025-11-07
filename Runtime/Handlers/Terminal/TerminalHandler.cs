@@ -40,15 +40,19 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private class TerminalToggleComponent : MonoBehaviour
         {
             public BLoggerConfig config;
-            public Action OnToggle;
-            public Action OnUpArrow;
-            public Action OnDownArrow;
+            public Action onToggle;
+            public Action onUpArrow;
+            public Action onDownArrow;
+            public Action onFontSizeIncrease;
+            public Action onFontSizeDecrease;
             
             private void Update()
             {
-                if (InputService.IsToggleKeyPressed(config)) OnToggle?.Invoke();
-                if (InputService.IsUpArrowPressed(config)) OnUpArrow?.Invoke();
-                if (InputService.IsDownArrowPressed(config)) OnDownArrow?.Invoke();
+                if (InputService.IsToggleKeyPressed(config)) onToggle?.Invoke();
+                if (InputService.IsUpArrowPressed(config)) onUpArrow?.Invoke();
+                if (InputService.IsDownArrowPressed(config)) onDownArrow?.Invoke();
+                if (InputService.IsFontSizeIncreasePressed(config)) onFontSizeIncrease?.Invoke();
+                if (InputService.IsFontSizeDecreasePressed(config)) onFontSizeDecrease?.Invoke();
             }
         }
         
@@ -88,12 +92,10 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _logTextComponent.text = _logBuilder.ToString();
             
             // Only auto-scroll if user hasn't manually scrolled up
-            if (_scrollRect != null && _autoScroll)
-            {
-                // Use Canvas.ForceUpdateCanvases to ensure layout is updated before scrolling
-                UnityEngine.Canvas.ForceUpdateCanvases();
-                _scrollRect.verticalNormalizedPosition = 0f;
-            }
+            if (!_scrollRect || !_autoScroll) return;
+            // Use Canvas.ForceUpdateCanvases to ensure layout is updated before scrolling
+            Canvas.ForceUpdateCanvases();
+            _scrollRect.verticalNormalizedPosition = 0f;
         }
         
         private void OnScrollChanged(Vector2 scrollPosition)
@@ -244,13 +246,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 // Set up send button
                 _sendButton.onClick.AddListener(ExecuteCommand);
                 
+                // Set initial font size from config
+                if (_logTextComponent) _logTextComponent.fontSize = _config.terminalFontSize;
+                
                 // Add a toggle component to the persistent input listener (not the terminal itself)
                 // This ensures it keeps receiving input even when the terminal is hidden
                 var toggleComponent = _inputListenerObject.AddComponent<TerminalToggleComponent>();
                 toggleComponent.config = _config;
-                toggleComponent.OnToggle = ToggleVisibility;
-                toggleComponent.OnUpArrow = NavigateHistoryUp;
-                toggleComponent.OnDownArrow = NavigateHistoryDown;
+                toggleComponent.onToggle = ToggleVisibility;
+                toggleComponent.onUpArrow = NavigateHistoryUp;
+                toggleComponent.onDownArrow = NavigateHistoryDown;
+                toggleComponent.onFontSizeIncrease = IncreaseFontSize;
+                toggleComponent.onFontSizeDecrease = DecreaseFontSize;
                 
                 IsEnabled = true;
             }
@@ -378,6 +385,34 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 _historyIndex = _commandHistory.Count;
                 _commandInputField.text = _currentInput;
                 _commandInputField.MoveToEndOfLine(false, false); // Move the cursor to end
+            }
+        }
+
+        private void IncreaseFontSize()
+        {
+            if (!_logTextComponent) return;
+            
+            float currentSize = _logTextComponent.fontSize;
+            float newSize = Mathf.Min(currentSize + 2, _config.maxTerminalFontSize);
+            
+            if (Mathf.Abs(newSize - currentSize) > 0.01f)
+            {
+                _logTextComponent.fontSize = newSize;
+                Debug.Log($"[TerminalHandler] Font size increased to {newSize}");
+            }
+        }
+
+        private void DecreaseFontSize()
+        {
+            if (!_logTextComponent) return;
+            
+            float currentSize = _logTextComponent.fontSize;
+            float newSize = Mathf.Max(currentSize - 2, _config.minTerminalFontSize);
+            
+            if (Mathf.Abs(newSize - currentSize) > 0.01f)
+            {
+                _logTextComponent.fontSize = newSize;
+                Debug.Log($"[TerminalHandler] Font size decreased to {newSize}");
             }
         }
         
