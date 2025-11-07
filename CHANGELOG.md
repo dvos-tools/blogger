@@ -1,5 +1,15 @@
 
 
+## [1.9.6] - 2025-11-07
+
+- feat: adding resizing of font (#19)
+- bump: update version and changelog [skip ci]
+- feat: resize the terminal window (#16)
+- bump: update version and changelog [skip ci]
+- docs: correct readme version number
+- bump: update version and changelog [skip ci]
+- feat: making sure that BLogger.Log() also calls Debug.Log in the background
+
 ## [1.9.5] - 2025-11-07
 
 - feat: resize the terminal window (#16)
