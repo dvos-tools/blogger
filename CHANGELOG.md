@@ -1,5 +1,11 @@
 
 
+## [1.9.4] - 2025-11-07
+
+- docs: correct readme version number
+- bump: update version and changelog [skip ci]
+- feat: making sure that BLogger.Log() also calls Debug.Log in the background
+
 ## [1.9.3] - 2025-11-07
 
 - feat: making sure that BLogger.Log() also calls Debug.Log in the background
