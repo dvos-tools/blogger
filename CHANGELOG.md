@@ -1,5 +1,9 @@
 
 
+## [1.9.3] - 2025-11-07
+
+- feat: making sure that BLogger.Log() also calls Debug.Log in the background
+
 ## [1.9.2] - 2025-11-06
 
 - Merge remote-tracking branch 'origin/main'
