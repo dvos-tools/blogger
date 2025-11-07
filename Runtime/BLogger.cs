@@ -29,6 +29,17 @@ namespace com.DvosTools.blogger
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Log);
+            
+            // Also log to Unity's Debug.Log for console visibility
+            BLoggerService.IsBLoggerDebugLog = true;
+            try
+            {
+                Debug.Log(message);
+            }
+            finally
+            {
+                BLoggerService.IsBLoggerDebugLog = false;
+            }
         }
 
         /// <summary>
@@ -47,6 +58,17 @@ namespace com.DvosTools.blogger
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Warning);
+            
+            // Also log to Unity's Debug.LogWarning for console visibility
+            BLoggerService.IsBLoggerDebugLog = true;
+            try
+            {
+                Debug.LogWarning(message);
+            }
+            finally
+            {
+                BLoggerService.IsBLoggerDebugLog = false;
+            }
         }
 
         /// <summary>
@@ -65,6 +87,17 @@ namespace com.DvosTools.blogger
         {
             var stackTrace = includeStackTrace ? System.Environment.StackTrace : "";
             BLoggerService.Instance.HandleLog(message?.ToString() ?? "", stackTrace, LogType.Error);
+            
+            // Also log to Unity's Debug.LogError for console visibility
+            BLoggerService.IsBLoggerDebugLog = true;
+            try
+            {
+                Debug.LogError(message);
+            }
+            finally
+            {
+                BLoggerService.IsBLoggerDebugLog = false;
+            }
         }
 
         /// <summary>

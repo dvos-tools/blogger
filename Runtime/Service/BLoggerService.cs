@@ -14,6 +14,11 @@ namespace com.DvosTools.blogger.Service
         public static BLoggerService Instance => _instance ??= new BLoggerService();
         private readonly List<ILoggingHandler> _handlers = new();
         
+        // Thread-local flag to mark when BLogger itself is making a Debug.Log call
+        // This prevents the UnityLogCatcher from re-processing BLogger's own Debug logs
+        [ThreadStatic]
+        internal static bool IsBLoggerDebugLog;
+        
         // Rate limiting
         private float _lastResetTime;
         private int _logsThisSecond;

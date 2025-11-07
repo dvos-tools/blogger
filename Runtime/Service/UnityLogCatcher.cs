@@ -53,6 +53,10 @@ namespace com.DvosTools.blogger.Service
             // This prevents infinite loops from Debug.Log calls within the processing code
             if (_isProcessing) return;
             
+            // Skip logs that come from BLogger's own Debug.Log calls
+            // This prevents duplicate logging when BLogger.Log() also calls Debug.Log()
+            if (BLoggerService.IsBLoggerDebugLog) return;
+            
             _isProcessing = true;
             try
             {
