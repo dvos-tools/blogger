@@ -1,5 +1,9 @@
 
 
+## [1.9.9] - 2025-11-07
+
+- fix: rate-limit only on Loki
+
 ## [1.9.8] - 2025-11-07
 
 - chore: splitting up config file with headers
