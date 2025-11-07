@@ -74,9 +74,10 @@ namespace com.DvosTools.blogger.Config
         [Tooltip("Loki base URL (default: http://localhost:3100)")] 
         public string lokiUrl = "http://localhost:3100";
         
-        [Tooltip("Enable sampling to reduce log volume in production\n\n" +
-                 "When enabled, only a percentage of logs will be sent to handlers.\n" +
-                 "Errors and Exceptions are always logged (100% sampling).")]
+        [Tooltip("Enable sampling to reduce log volume sent to Loki in production\n\n" +
+                 "When enabled, only a percentage of logs will be sent to Loki.\n" +
+                 "File and Terminal handlers always receive all logs.\n" +
+                 "Errors and Exceptions are always logged to Loki (100% sampling).")]
         public bool enableSampling = false;
         
         [Tooltip("Sample rate for Info/Log messages (0.0 = none, 1.0 = all)\n\n" +
@@ -101,8 +102,9 @@ namespace com.DvosTools.blogger.Config
                  "Recommended: Keep enabled! Exceptions are critical.")]
         public bool alwaysLogExceptions = true;
         
-        [Tooltip("Max logs per second (rate limiting)\n\n" +
-                 "Prevents log storms from overwhelming services.\n" +
+        [Tooltip("Max logs per second sent to Loki (rate limiting)\n\n" +
+                 "Prevents log storms from overwhelming Loki.\n" +
+                 "File and Terminal handlers are not rate limited.\n" +
                  "0 = unlimited\n" +
                  "Recommended for production: 50-200")]
         [Range(0, 1000)]

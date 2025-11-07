@@ -11,16 +11,23 @@ namespace com.DvosTools.blogger.Handlers
     {
         private static readonly HttpClient Client = new();
         private readonly string _lokiURL;
+        private readonly BLoggerConfig _config;
         public bool IsEnabled { get; private set; }
+        
+        // Rate limiting
+        private float _lastResetTime;
+        private int _logsThisSecond;
 
         public LokiHandler(BLoggerConfig config)
         {
             _lokiURL = config.lokiUrl + "/loki/api/v1/push";
+            _config = config;
         }
 
         public void Initialize()
         {
             IsEnabled = true;
+            _lastResetTime = Time.realtimeSinceStartup;
         }
 
         public void Shutdown()
@@ -30,6 +37,9 @@ namespace com.DvosTools.blogger.Handlers
 
         public async void HandleLog(string logString, string stackTrace, LogType type)
         {
+            if (!ShouldLogMessage(type)) return; // Skip this log due to sampling
+            if (_config.maxLogsPerSecond > 0 && !CheckRateLimit()) return; // Skip this log due to rate limiting
+            
             try
             {
                 // Context is already injected by BLoggerService, escape for JSON
@@ -67,6 +77,62 @@ namespace com.DvosTools.blogger.Handlers
             {
                 Debug.LogError($"[LokiHandler] Failed to send log to Loki: {e.Message}");
             }
+        }
+
+        /// <summary>
+        /// Determines if a log message should be sent to Loki based on sampling configuration
+        /// </summary>
+        private bool ShouldLogMessage(LogType type)
+        {
+            // If sampling is disabled, always log
+            if (!_config.enableSampling)
+            {
+                return true;
+            }
+            
+            // Always log exceptions if configured
+            if (type == LogType.Exception && _config.alwaysLogExceptions)
+            {
+                return true;
+            }
+            
+            // Get sample rate based on log type
+            float sampleRate = type switch
+            {
+                LogType.Log => _config.infoSampleRate,
+                LogType.Warning => _config.warningSampleRate,
+                LogType.Error => _config.errorSampleRate,
+                LogType.Exception => _config.errorSampleRate,
+                LogType.Assert => _config.errorSampleRate,
+                _ => 1.0f
+            };
+            
+            // Sample based on random value
+            return UnityEngine.Random.value <= sampleRate;
+        }
+        
+        /// <summary>
+        /// Check if we're within the rate limit (logs per second) for Loki
+        /// </summary>
+        private bool CheckRateLimit()
+        {
+            float currentTime = Time.realtimeSinceStartup;
+            
+            // Reset counter every second
+            if (currentTime - _lastResetTime >= 1.0f)
+            {
+                _lastResetTime = currentTime;
+                _logsThisSecond = 0;
+            }
+            
+            // Check if we're under the limit
+            if (_logsThisSecond >= _config.maxLogsPerSecond)
+            {
+                return false; // Rate limit exceeded
+            }
+            
+            _logsThisSecond++;
+            return true;
         }
 
         private string EscapeJson(string text)
