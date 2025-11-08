@@ -2,6 +2,8 @@
 
 A powerful logging system for Unity with in-game terminal, file logging, and runtime value inspection.
 
+<img width="1954" height="1301" alt="Screenshot 2025-11-08 at 22 21 36" src="https://github.com/user-attachments/assets/a3973bb5-a26f-4975-b3f9-7b3d38584c98" />
+
 ## Installation
 
 Add to your Packages/manifest.json:
