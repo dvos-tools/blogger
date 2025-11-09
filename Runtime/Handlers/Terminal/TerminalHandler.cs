@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using com.DvosTools.blogger.Config;
@@ -23,6 +22,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private TerminalResizeHandle _resizeHandle;
         private readonly StringBuilder _logBuilder = new();
         private readonly Queue<string> _logEntries = new();
+        private readonly Queue<int> _logEntryLengths = new(); // Track lengths for efficient removal
         private bool _isVisible = true;
         private bool _autoScroll = true; // Track if we should auto-scroll
 
@@ -355,7 +355,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             
             string pathInput = currentInput.Substring(1); // Remove / prefix
             
-            // Check if it's an action (has parentheses) or value (no parentheses)
+            // Check if it's an action (has parentheses) or value/action without params (no parentheses)
             bool isAction = pathInput.Contains("(") || pathInput.Contains(")");
             string searchInput = isAction && pathInput.Contains("(")
                 ? pathInput.Substring(0, pathInput.IndexOf("(", StringComparison.Ordinal))
@@ -368,6 +368,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 .Select(v => $"/{v}");
 
             // Get all actions as strings (combine static and instance, then filter)
+            // Show without () if no parameters, with () if it has parameters
             var allActions = valueRegistry.GetAllStaticActionsWithParameters()
                 .Select(a => (path: a.actionName, a.parameters))
                 .Concat(valueRegistry.GetAllInstanceActionsWithParameters()
@@ -375,7 +376,11 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 .Where(a => string.IsNullOrWhiteSpace(searchInput) || a.path.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase))
                 .Select(a =>
                 {
-                    var paramString = FormatParameters(a.parameters);
+                    if (a.parameters == null || a.parameters.Length == 0)
+                        return $"/{a.path}";
+
+                    // Has parameters - show with parentheses
+                    var paramString = TerminalHelper.FormatParameters(a.parameters);
                     return $"/{a.path}({paramString})";
                 });
 
@@ -398,13 +403,6 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             }
         }
 
-        private string FormatParameters(ParameterInfo[] parameters)
-        {
-            if (parameters == null || parameters.Length == 0)
-                return "";
-            
-            return string.Join(", ", parameters.Select(p => p.ParameterType.Name));
-        }
 
         private void LogDirectly(string message, LogType logType)
         {
@@ -421,18 +419,21 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         {
             _logEntries.Enqueue(formattedLog);
             
-            // Remove old entries if we exceed max
-            while (_logEntries.Count > _config.maxOnScreenLogEntries)
+            // If we're at max capacity, remove the oldest entry from the builder
+            if (_logEntries.Count > _config.maxOnScreenLogEntries)
             {
                 _logEntries.Dequeue();
+                var removedLength = _logEntryLengths.Dequeue();
+                // Remove the first entry from the builder (entry + newline)
+                _logBuilder.Remove(0, removedLength);
             }
             
-            // Rebuild the entire log text
-            _logBuilder.Clear();
-            foreach (var entry in _logEntries)
-            {
-                _logBuilder.AppendLine(entry);
-            }
+            // Track the length of this entry (including newline from AppendLine)
+            var entryLength = formattedLog.Length + Environment.NewLine.Length;
+            _logEntryLengths.Enqueue(entryLength);
+            
+            // Append the new entry
+            _logBuilder.AppendLine(formattedLog);
             
             // Update the text component
             _logTextComponent.text = _logBuilder.ToString();
@@ -478,17 +479,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 
             if (openParens != closeParens)
             {
-                error = "Unmatched parentheses in action syntax. Expected format: /action(args)";
+                error = "Unmatched parentheses in action syntax. Expected format: /action or /action(args)";
                 return false;
             }
                 
-            // Check if action has parentheses but is malformed
-            // Look for / followed by identifier that ends without a parenthesis when parentheses are present
-            if (openParens <= 0) return true;
+            // If no parentheses, it's valid (could be value or action without params)
+            if (openParens == 0) return true;
+            
+            // Check if action with parentheses is malformed
             var actionRegex = new Regex(@"/[\w\.]+\([^\)]*\)");
             
             if (actionRegex.IsMatch(input)) return true;
-            error = $"Failed to Parse: {input} Actions require parentheses. Expected format: /action() or /action(args)";
+            error = $"Failed to Parse: {input} Actions with parameters require parentheses. Expected format: /action(args)";
             return false;
 
         }
@@ -496,9 +498,13 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         public void ClearLogs()
         {
             _logEntries.Clear();
+            _logEntryLengths.Clear();
             _logBuilder.Clear();
-            _logTextComponent.text = $"<color=green>{StartString} Console cleared</color>\n";
-            _logEntries.Enqueue($"<color=green>{StartString} Console cleared</color>");
+            var clearedMessage = $"<color=green>{StartString} Console cleared</color>";
+            _logEntries.Enqueue(clearedMessage);
+            _logEntryLengths.Enqueue(clearedMessage.Length + Environment.NewLine.Length);
+            _logBuilder.AppendLine(clearedMessage);
+            _logTextComponent.text = _logBuilder.ToString();
         }
 
         public TextMeshProUGUI GetLogTextComponent()
@@ -541,6 +547,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _sendButton = null;
             _scrollRect = null;
             _logEntries.Clear();
+            _logEntryLengths.Clear();
             _logBuilder.Clear();
             IsEnabled = false;
             
@@ -554,54 +561,59 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (string.IsNullOrEmpty(input))
                 return input;
 
+            // Don't parse if input already contains HTML tags (already formatted)
+            if (input.Contains("<color") || input.Contains("</color>"))
+                return input;
+
             // Handle / prefix for both values and actions
             if (!input.StartsWith("/")) return input;
             
-            string path = input.Substring(1); // Remove / prefix
+            // Match either action with parentheses or value/action without parentheses
+            // Use negative lookbehind to avoid matching inside HTML tags
+            var actionWithParamsRegex = new Regex(@"(?<!<[^>]*)/([\w\.]+\([^\)]*\))");
+            var valueOrActionRegex = new Regex(@"(?<!<[^>]*)/([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
             
-            // Check if it's an action (has parentheses) or a value (no parentheses)
-            if (path.Contains("(") && path.Contains(")"))
+            // First, handle actions with parentheses
+            input = actionWithParamsRegex.Replace(input, match =>
             {
-                // It's an action: /Player.test.setHealth(100)
-                var actionRegex = new Regex(@"/([\w\.]+\([^\)]*\))");
-                input = actionRegex.Replace(input, match =>
-                {
-                    var actionToken = match.Groups[1].Value;
+                var actionToken = match.Groups[1].Value;
 
-                    if (!TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
-                        return $"<color=red>Unknown action: \"/{actionToken}\"</color>";
+                if (!TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
+                    return $"<color=red>Unknown action: \"/{actionToken}\"</color>";
+                
+                var colorizedAction = ColorizeActionPath(actionToken);
+                if (result == null) return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
                     
-                    // Colorize the action path
-                    var colorizedAction = ColorizeActionPath(actionToken);
+                var resultStr = result.ToString();
+                resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
+                return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
+            });
+            
+            // Then, handle values and actions without parentheses (try action first, then value)
+            input = valueOrActionRegex.Replace(input, match =>
+            {
+                var token = match.Groups[1].Value;
 
+                // Try as action first (actions without parameters)
+                if (TerminalValueRegistry.Instance.TryExecuteAction(token, out var result))
+                {
+                    var colorizedAction = ColorizeActionPath(token);
                     if (result == null) return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
-                        
+                            
                     var resultStr = result.ToString();
-                    // Escape result string for display
                     resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
                     return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
-                });
-            }
-            else
-            {
-                // It's a value: /Player.test.health or /fps
-                var valueRegex = new Regex(@"/([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
-                input = valueRegex.Replace(input, match =>
-                {
-                    var token = match.Groups[1].Value;
-
-                    if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
-                        return $"<color=red>Unknown token: /{token}</color>";
+                }
                 
-                    var valueStr = value?.ToString() ?? "null";
-                    // Escape value string for display
-                    valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
-                    
-                    // Colorize the value path
-                    var colorizedToken = TerminalHelper.ColorizeValuePath(token);
-                    return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
-                });
-            }
+                // Try as value
+                if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
+                    return $"<color=red>Unknown token: /{token}</color>";
+                var valueStr = value?.ToString() ?? "null";
+                valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
+                var colorizedToken = TerminalHelper.ColorizeValuePath(token);
+                return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
+
+            });
 
             return input;
         }
@@ -610,13 +622,21 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         private static string ColorizeActionPath(string actionToken)
         {
-            // Extract a path and arguments: heal(50) or Players.player1.heal(50)
+            // Extract a path and arguments: heal(50) or Players.player1.heal(50) or clear
             var openParen = actionToken.IndexOf('(');
+            string path;
+            string argsWithParen = "";
+            
             if (openParen == -1)
-                return $"<color=white>{actionToken}</color>";
-
-            var path = actionToken.Substring(0, openParen);
-            var argsWithParen = actionToken.Substring(openParen); // (50)
+            {
+                // No parentheses - action without parameters
+                path = actionToken;
+            }
+            else
+            {
+                path = actionToken.Substring(0, openParen);
+                argsWithParen = actionToken.Substring(openParen); // (50)
+            }
             
             var parts = path.Split('.');
 

@@ -90,14 +90,8 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         [BLoggerAction("help")]
         public static void Help(string commandName = null)
         {
-            if (string.IsNullOrWhiteSpace(commandName))
-            {
-                GenerateGeneralHelp();
-            }
-            else
-            {
-                GenerateCommandHelp(commandName);
-            }
+            if (string.IsNullOrWhiteSpace(commandName)) GenerateGeneralHelp();
+            else GenerateCommandHelp(commandName);
         }
 
         [BLoggerAction("?")]
@@ -132,8 +126,15 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 helpText.AppendLine("Static Actions:");
                 foreach (var action in staticActions)
                 {
-                    var paramString = FormatParameters(action.parameters);
-                    helpText.AppendLine($"  /{action.actionName}({paramString})");
+                    if (action.parameters == null || action.parameters.Length == 0)
+                    {
+                        helpText.AppendLine($"  /{action.actionName}");
+                    }
+                    else
+                    {
+                        var paramString = TerminalHelper.FormatParameters(action.parameters);
+                        helpText.AppendLine($"  /{action.actionName}({paramString})");
+                    }
                 }
                 helpText.AppendLine("");
             }
@@ -148,8 +149,15 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 helpText.AppendLine("Instance Actions:");
                 foreach (var action in instanceActions)
                 {
-                    var paramString = FormatParameters(action.parameters);
-                    helpText.AppendLine($"  /{action.actionPath}({paramString})");
+                    if (action.parameters == null || action.parameters.Length == 0)
+                    {
+                        helpText.AppendLine($"  /{action.actionPath}");
+                    }
+                    else
+                    {
+                        var paramString = TerminalHelper.FormatParameters(action.parameters);
+                        helpText.AppendLine($"  /{action.actionPath}({paramString})");
+                    }
                 }
                 helpText.AppendLine("");
             }
@@ -199,10 +207,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (staticActions.Count > 0)
             {
                 var action = staticActions.First();
-                var paramString = FormatParameters(action.parameters);
                 var helpText = new StringBuilder();
-                helpText.AppendLine($"Action: /{action.actionName}({paramString})");
-                helpText.AppendLine($"Parameters: {paramString}");
+                if (action.parameters == null || action.parameters.Length == 0)
+                {
+                    helpText.AppendLine($"Action: /{action.actionName}");
+                    helpText.AppendLine("Parameters: None");
+                }
+                else
+                {
+                    var paramString = TerminalHelper.FormatParameters(action.parameters);
+                    helpText.AppendLine($"Action: /{action.actionName}({paramString})");
+                    helpText.AppendLine($"Parameters: {paramString}");
+                }
                 BLogger.Log(helpText.ToString());
                 return;
             }
@@ -215,10 +231,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (instanceActions.Count > 0)
             {
                 var action = instanceActions.First();
-                var paramString = FormatParameters(action.parameters);
                 var helpText = new StringBuilder();
-                helpText.AppendLine($"Action: /{action.actionPath}({paramString})");
-                helpText.AppendLine($"Parameters: {paramString}");
+                if (action.parameters == null || action.parameters.Length == 0)
+                {
+                    helpText.AppendLine($"Action: /{action.actionPath}");
+                    helpText.AppendLine("Parameters: None");
+                }
+                else
+                {
+                    var paramString = TerminalHelper.FormatParameters(action.parameters);
+                    helpText.AppendLine($"Action: /{action.actionPath}({paramString})");
+                    helpText.AppendLine($"Parameters: {paramString}");
+                }
                 BLogger.Log(helpText.ToString());
                 return;
             }
@@ -237,12 +261,5 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             BLogger.Log($"Unknown action or value: /{commandName}");
         }
 
-        private static string FormatParameters(ParameterInfo[] parameters)
-        {
-            if (parameters == null || parameters.Length == 0)
-                return "";
-            
-            return string.Join(", ", parameters.Select(p => p.ParameterType.Name));
-        }
     }
 }
