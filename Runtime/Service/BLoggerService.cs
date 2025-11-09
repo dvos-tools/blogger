@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using com.DvosTools.blogger.Handlers;
 using com.DvosTools.blogger.Config;
@@ -32,11 +33,9 @@ namespace com.DvosTools.blogger.Service
             var enrichedLogString = $"[{context}] {logString}";
             
             List<Exception> exceptions = new List<Exception>();
-            
-            foreach (var handler in _handlers)
+
+            foreach (var handler in _handlers.Where(handler => handler.IsEnabled))
             {
-                if (!handler.IsEnabled) continue;
-                
                 try
                 {
                     // TerminalHandler gets raw log without context prefix (context available via command)
@@ -49,7 +48,7 @@ namespace com.DvosTools.blogger.Service
                     exceptions.Add(ex);
                 }
             }
-            
+
             // If any handlers threw exceptions, re-throw them all as an AggregateException
             if (exceptions.Count > 0)
             {

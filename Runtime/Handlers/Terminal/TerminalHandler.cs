@@ -251,61 +251,8 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         
         private void RegisterTerminalCommands()
         {
-            var registry = TerminalCommandRegistry.Instance;
-            var commands = BuiltInTerminalCommands.GetCommandDefinitions(
-                clearAction: _ => ClearLogs(),
-                helpAction: HandleHelpCommand,
-                copyAction: _ => CopyToClipboard(),
-                contextAction: _ => ShowContext(),
-                exitAction: _ => CloseTerminal()
-            );
-
-            foreach (var cmd in commands.Values)
-            {
-                registry.RegisterCommand(new TerminalCommandRegistry.TerminalCommand(cmd.Name, cmd.Description,
-                    cmd.Usage, rawArgs => cmd.ExecuteAction(new CommandArgs(rawArgs)), cmd.Aliases));
-            }
-        }
-        
-        private void HandleHelpCommand(CommandArgs args)
-        {
-            var registry = TerminalCommandRegistry.Instance;
-            
-            if (args.HasArgs)
-            {
-                var helpText = registry.GenerateCommandHelp(args.Get(0));
-                BLogger.Log(helpText);
-            }
-            else
-            {
-                var helpText = registry.GenerateHelpText();
-                BLogger.Log(helpText);
-            }
-        }
-        
-        private void CopyToClipboard()
-        {
-            if (_logTextComponent == null) return;
-            // Remove rich text tags for clean copy
-            var textToCopy = Regex.Replace(_logTextComponent.text, "<.*?>", string.Empty);
-            GUIUtility.systemCopyBuffer = textToCopy;
-            BLogger.Log("Terminal output copied to clipboard!");
-        }
-        
-        private void ShowContext()
-        {
-            var context = Context.LoggingContext.GetFormattedContext();
-            BLogger.Log($"Logging Context: [{context}]");
-        }
-        
-        private void CloseTerminal()
-        {
-            if (!_terminalInstance) return;
-            
-            _isVisible = false;
-            _terminalInstance.SetActive(false);
-            
-            Debug.Log("[TerminalHandler] Terminal closed");
+            // Set the terminal handler reference for DefaultActions
+            DefaultActions.SetTerminalHandler(this);
         }
         
         private void ToggleVisibility()
@@ -401,101 +348,53 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (!_commandInputField.isFocused) return;
             string currentInput = _commandInputField.text.Trim();
             var valueRegistry = TerminalValueRegistry.Instance;
-            var commandRegistry = TerminalCommandRegistry.Instance;
 
-            // Check if input starts with / (for values and actions)
-            if (currentInput.StartsWith("/"))
+            // All values and actions start with /
+            if (!currentInput.StartsWith("/"))
+                return;
+            
+            string pathInput = currentInput.Substring(1); // Remove / prefix
+            
+            // Check if it's an action (has parentheses) or value (no parentheses)
+            bool isAction = pathInput.Contains("(") || pathInput.Contains(")");
+            string searchInput = isAction && pathInput.Contains("(")
+                ? pathInput.Substring(0, pathInput.IndexOf("(", StringComparison.Ordinal))
+                : pathInput;
+            
+            // Get all values as strings (combine static and instance, then filter)
+            var allValues = valueRegistry.GetAllStaticValues()
+                .Concat(valueRegistry.GetAllInstanceValues())
+                .Where(v => string.IsNullOrWhiteSpace(searchInput) || v.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase))
+                .Select(v => $"/{v}");
+
+            // Get all actions as strings (combine static and instance, then filter)
+            var allActions = valueRegistry.GetAllStaticActionsWithParameters()
+                .Select(a => (path: a.actionName, a.parameters))
+                .Concat(valueRegistry.GetAllInstanceActionsWithParameters()
+                    .Select(a => (path: a.actionPath, a.parameters)))
+                .Where(a => string.IsNullOrWhiteSpace(searchInput) || a.path.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase))
+                .Select(a =>
+                {
+                    var paramString = FormatParameters(a.parameters);
+                    return $"/{a.path}({paramString})";
+                });
+
+            // Combine based on whether we're looking for actions only
+            var allMatches = isAction 
+                ? allActions 
+                : allValues.Concat(allActions);
+            var sortedMatches = allMatches.OrderBy(x => x).ToList();
+
+            if (sortedMatches.Count == 0)
             {
-                string pathInput = currentInput.Substring(1); // Remove / prefix
-                
-                // Check if it's an action (has parentheses) or value (no parentheses)
-                bool isAction = pathInput.Contains("(") || pathInput.Contains(")");
-                string searchInput = isAction && pathInput.Contains("(")
-                    ? pathInput.Substring(0, pathInput.IndexOf("(", StringComparison.Ordinal))
-                    : pathInput;
-                
-                // Get all values and actions
-                var allStaticValues = valueRegistry.GetAllStaticValues().ToList();
-                var allInstanceValues = valueRegistry.GetAllInstanceValues().ToList();
-                var allStaticActions = valueRegistry.GetAllStaticActionsWithParameters().ToList();
-                var allInstanceActions = valueRegistry.GetAllInstanceActionsWithParameters().ToList();
-
-                // Match values
-                var matchingValues = (string.IsNullOrWhiteSpace(searchInput) ? allStaticValues : allStaticValues.Where(v => v.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
-                    .Concat(string.IsNullOrWhiteSpace(searchInput) ? allInstanceValues : allInstanceValues.Where(v => v.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
-                    .Select(v => $"/{v}");
-
-                // Match actions
-                var matchingStaticActionStrings = (string.IsNullOrWhiteSpace(searchInput) ? allStaticActions : allStaticActions.Where(a => a.actionName.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
-                    .Select(a =>
-                    {
-                        var paramString = FormatParameters(a.parameters);
-                        return $"/{a.actionName}({paramString})";
-                    });
-                
-                var matchingInstanceActionStrings = (string.IsNullOrWhiteSpace(searchInput) ? allInstanceActions : allInstanceActions.Where(a => a.actionPath.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
-                    .Select(a =>
-                    {
-                        var paramString = FormatParameters(a.parameters);
-                        return $"/{a.actionPath}({paramString})";
-                    });
-                
-                var matchingActions = matchingStaticActionStrings.Concat(matchingInstanceActionStrings);
-
-                // Combine and filter based on whether we're looking for actions only
-                var allMatches = isAction ? matchingActions : matchingValues.Concat(matchingActions);
-                var sortedMatches = allMatches.OrderBy(x => x).ToList();
-
-                if (sortedMatches.Count == 0)
-                {
-                    LogDirectly(isAction ? "No matching actions found." : "No matching values or actions found.", LogType.Warning);
-                    return;
-                }
-
-                LogDirectly($"Possible {(isAction ? "actions" : "values and actions")} ({sortedMatches.Count}):", LogType.Warning);
-                foreach (var match in sortedMatches)
-                {
-                    LogDirectly($"  {match}", LogType.Warning);
-                }
+                LogDirectly(isAction ? "No matching actions found." : "No matching values or actions found.", LogType.Warning);
+                return;
             }
-            else
+
+            LogDirectly($"Possible {(isAction ? "actions" : "values and actions")} ({sortedMatches.Count}):", LogType.Warning);
+            foreach (var match in sortedMatches)
             {
-                // Handle command auto-complete
-                var allCommands = commandRegistry.GetAllCommands().ToList();
-
-                var matchingCommands = string.IsNullOrWhiteSpace(currentInput)
-                    ? allCommands
-                    : allCommands.Where(cmd =>
-                            cmd.Name.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase) ||
-                            (cmd.Aliases != null && cmd.Aliases.Any(alias =>
-                                alias.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))))
-                        .ToList();
-
-                if (matchingCommands.Count == 0)
-                {
-                    LogDirectly("No matching commands found.", LogType.Warning);
-                    return;
-                }
-
-                var commandNames = matchingCommands
-                    .SelectMany(cmd =>
-                    {
-                        var names = new List<string> { cmd.Name };
-                        if (cmd.Aliases is { Length: > 0 })
-                            names.AddRange(cmd.Aliases);
-                        return names;
-                    })
-                    .Where(name => string.IsNullOrWhiteSpace(currentInput) ||
-                                   name.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))
-                    .Distinct()
-                    .OrderBy(name => name)
-                    .ToList();
-
-                LogDirectly($"Possible commands ({commandNames.Count}):", LogType.Warning);
-                foreach (var commandName in commandNames)
-                {
-                    LogDirectly($"  {commandName}", LogType.Warning);
-                }
+                LogDirectly($"  {match}", LogType.Warning);
             }
         }
 
@@ -504,41 +403,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (parameters == null || parameters.Length == 0)
                 return "";
             
-            return string.Join(", ", parameters.Select(p => 
-            {
-                var typeName = GetTypeDisplayName(p.ParameterType);
-                return $"{typeName}";
-            }));
-        }
-
-        private string GetTypeDisplayName(Type type)
-        {
-            // Handle generic types
-            if (type.IsGenericType)
-            {
-                var genericArgs = type.GetGenericArguments();
-                var baseName = type.Name.Split('`')[0];
-                var args = string.Join(", ", genericArgs.Select(GetTypeDisplayName));
-                return $"{baseName}<{args}>";
-            }
-            
-            // Handle arrays
-            if (!type.IsArray)
-                return type.Name switch
-                {
-                    "Int32" => "int",
-                    "Int64" => "long",
-                    "Single" => "float",
-                    "Double" => "double",
-                    "Boolean" => "bool",
-                    "String" => "string",
-                    "Object" => "object",
-                    _ => type.Name
-                };
-            var elementType = type.GetElementType();
-            return $"{GetTypeDisplayName(elementType)}[]";
-
-            // Handle common types with shorter names
+            return string.Join(", ", parameters.Select(p => p.ParameterType.Name));
         }
 
         private void LogDirectly(string message, LogType logType)
@@ -580,30 +445,24 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         
         private void ProcessCommand(string command)
         {
-            var registry = TerminalCommandRegistry.Instance;
-            
-            // Try to execute as a registered command first
-            if (registry.TryExecuteCommand(command, out _)) return;
-            
-            // Check if command starts with / (for values and actions)
-            if (command.StartsWith("/"))
+            // All commands must start with / for consistency
+            if (!command.StartsWith("/"))
             {
-                // Validate syntax before processing
-                if (!ValidateTokenSyntax(command, out string syntaxError))
-                {
-                    BLogger.Error($"Syntax error: {syntaxError}");
-                    return;
-                }
-                
-                // Process tokens and display results through the logger
-                // The ParseTerminalTokensAndActions method will handle /values and /actions
-                BLogger.Log(command);
+                BLogger.Warn($"Unknown command: \"{command}\". All commands must start with '/' (e.g., /help, /clear)");
+                return;
             }
-            else
+            
+            // Try to execute as value or action
+            // Validate syntax before processing
+            if (!ValidateTokenSyntax(command, out string syntaxError))
             {
-                // Show simple not found message
-                BLogger.Warn($"Unknow command: \"{command}\"");
+                BLogger.Error($"Syntax error: {syntaxError}");
+                return;
             }
+            
+            // Process tokens and display results through the logger
+            // The ParseTerminalTokensAndActions method will handle /values and /actions
+            BLogger.Log(command);
         }
         
         private bool ValidateTokenSyntax(string input, out string error)
@@ -634,7 +493,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         }
         
-        private void ClearLogs()
+        public void ClearLogs()
         {
             _logEntries.Clear();
             _logBuilder.Clear();
@@ -642,19 +501,27 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _logEntries.Enqueue($"<color=green>{StartString} Console cleared</color>");
         }
 
+        public TextMeshProUGUI GetLogTextComponent()
+        {
+            return _logTextComponent;
+        }
+
+        public void CloseTerminal()
+        {
+            if (!_terminalInstance) return;
+            
+            _isVisible = false;
+            _terminalInstance.SetActive(false);
+            
+            Debug.Log("[TerminalHandler] Terminal closed");
+        }
+
         public void Shutdown()
         {
             // Clean up event listeners
-            if (_commandInputField)
-                _commandInputField.onSubmit.RemoveAllListeners();
-            
-            if (_sendButton)
-                _sendButton.onClick.RemoveAllListeners();
-            
-            if (_scrollRect)
-                _scrollRect.onValueChanged.RemoveAllListeners();
-            
-            // Clean up resize handle
+            if (_commandInputField) _commandInputField.onSubmit.RemoveAllListeners();
+            if (_sendButton) _sendButton.onClick.RemoveAllListeners();
+            if (_scrollRect) _scrollRect.onValueChanged.RemoveAllListeners();
             _resizeHandle = null;
             
             if (_terminalInstance)
@@ -682,8 +549,6 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         public bool IsEnabled { get; private set; }
         
-      
-
         private string ParseTerminalTokensAndActions(string input)
         {
             if (string.IsNullOrEmpty(input))
