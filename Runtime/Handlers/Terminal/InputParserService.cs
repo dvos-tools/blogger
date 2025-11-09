@@ -174,6 +174,24 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             return arg;
         }
 
+        /// <summary>
+        /// Removes parentheses and parameters from an action string.
+        /// Example: "action(bool)" -> "action"
+        /// </summary>
+        public static string RemoveParenthesesAndParameters(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            if (input.Contains("(") && input.Contains(")"))
+            {
+                int openParenIndex = input.IndexOf("(", StringComparison.Ordinal);
+                return input.Substring(0, openParenIndex);
+            }
+
+            return input;
+        }
+
         private class ParserState
         {
             public bool InQuotes { get; set; }
