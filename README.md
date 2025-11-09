@@ -29,11 +29,13 @@ Quick access: `Tools > BLogger > Open Config`
 ## Terminal Usage
 
 Press `~` (tilde) to open the in-game terminal. Use built-in commands:
-- `clear` - Clear terminal output
-- `help [command]` - Show available commands
-- `copy` - Copy logs to clipboard
-- `exit` - Close terminal
-- `cmd/control [+ / -]` increase or decrease font size
+- `/clear` - Clear terminal output
+- `/help [command]` - Show available commands
+- `/copy` - Copy logs to clipboard
+- `/exit` - Close terminal
+- `cmd/control [+ / -]` - Increase or decrease font size
+
+Press `Tab` while typing a command to see available options and auto-complete suggestions.
 
 ## BLogger Attributes
 
@@ -56,8 +58,8 @@ public class PlayerStats : BLoggerMonoBehaviour
 }
 
 // Terminal Usage:
-// "@Players.player1.health"      -> Shows current health value
-// "!Players.player1.Heal(50)"    -> Heals player1 by 50 HP
+// "/Players.player1.health"      -> Shows current health value
+// "/Players.player1.Heal(50)"    -> Heals player1 by 50 HP
 ```
 
 ## Basic Logging
