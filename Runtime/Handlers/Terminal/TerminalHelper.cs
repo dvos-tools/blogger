@@ -52,6 +52,14 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 _ => "white"
             };
         }
+
+        public static string FormatParameters(ParameterInfo[] parameters)
+        {
+            if (parameters == null || parameters.Length == 0)
+                return "";
+            
+            return string.Join(", ", parameters.Select(p => p.ParameterType.Name));
+        }
         
     }
 }

@@ -21,7 +21,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         /// <summary>
         /// Parses an action call string into its components.
-        /// Examples: "heal(50)", "Players.player1.heal(50)", "pause(true)", "kill()"
+        /// Examples: "heal(50)", "Players.player1.heal(50)", "pause(true)", "kill()", "clear"
         /// </summary>
         public static ActionCall ParseActionCall(string input)
         {
@@ -31,8 +31,15 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             var openParen = input.IndexOf('(');
             var closeParen = input.LastIndexOf(')');
 
+            // If no parentheses, treat as action with no parameters
             if (openParen == -1 || closeParen == -1 || closeParen <= openParen)
-                return null;
+            {
+                return new ActionCall
+                {
+                    Path = input,
+                    Arguments = Array.Empty<string>()
+                };
+            }
 
             var path = input.Substring(0, openParen);
             var argsString = input.Substring(openParen + 1, closeParen - openParen - 1).Trim();
@@ -165,6 +172,24 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 return arg.Substring(1, arg.Length - 2);
             }
             return arg;
+        }
+
+        /// <summary>
+        /// Removes parentheses and parameters from an action string.
+        /// Example: "action(bool)" -> "action"
+        /// </summary>
+        public static string RemoveParenthesesAndParameters(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            if (input.Contains("(") && input.Contains(")"))
+            {
+                int openParenIndex = input.IndexOf("(", StringComparison.Ordinal);
+                return input.Substring(0, openParenIndex);
+            }
+
+            return input;
         }
 
         private class ParserState
