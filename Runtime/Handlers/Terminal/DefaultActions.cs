@@ -30,12 +30,6 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             _terminalHandler?.ClearLogs();
         }
 
-        [BLoggerAction("cls")]
-        public static void Cls()
-        {
-            Clear(); // Alias for clear
-        }
-
         [BLoggerAction("copy")]
         public static void Copy()
         {
@@ -50,23 +44,11 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             BLogger.Log("Terminal output copied to clipboard!");
         }
 
-        [BLoggerAction("c")]
-        public static void C()
-        {
-            Copy(); // Alias for copy
-        }
-
         [BLoggerAction("context")]
         public static void Context()
         {
             var context = LoggingContext.GetFormattedContext();
             BLogger.Log($"Logging Context: [{context}]");
-        }
-
-        [BLoggerAction("ctx")]
-        public static void Ctx()
-        {
-            Context(); // Alias for context
         }
 
         [BLoggerAction("exit")]
@@ -81,29 +63,10 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             Exit(); // Alias for exit
         }
 
-        [BLoggerAction("q")]
-        public static void Q()
-        {
-            Exit(); // Alias for exit
-        }
-
         [BLoggerAction("help")]
-        public static void Help(string commandName = null)
+        public static void Help()
         {
-            if (string.IsNullOrWhiteSpace(commandName)) GenerateGeneralHelp();
-            else GenerateCommandHelp(commandName);
-        }
-
-        [BLoggerAction("?")]
-        public static void QuestionMark()
-        {
-            Help(); // Alias for help
-        }
-
-        [BLoggerAction("h")]
-        public static void H()
-        {
-            Help(); // Alias for help
+            GenerateGeneralHelp();
         }
 
         private static void GenerateGeneralHelp()
@@ -183,83 +146,12 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             helpText.AppendLine("Examples:");
             helpText.AppendLine("  /clear                    - Clear the console");
             helpText.AppendLine("  /copy                      - Copy terminal output to clipboard");
-            helpText.AppendLine("  /fps                       - Display FPS value");
+            helpText.AppendLine("  /context                   - Show current logging context");
+            helpText.AppendLine("  /exit                      - Close the terminal");
             helpText.AppendLine("  /Player.test.health        - Display instance value");
-            helpText.AppendLine("  /pause(true)               - Pause the game");
             helpText.AppendLine("  /Player.test.setHealth(100) - Execute instance action");
             
             BLogger.Log(helpText.ToString());
         }
-
-        private static void GenerateCommandHelp(string commandName)
-        {
-            var valueRegistry = TerminalValueRegistry.Instance;
-            
-            // Remove / prefix if present
-            if (commandName.StartsWith("/"))
-                commandName = commandName.Substring(1);
-            
-            // Check if it's a static action
-            var staticActions = valueRegistry.GetAllStaticActionsWithParameters()
-                .Where(a => a.actionName.Equals(commandName, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            
-            if (staticActions.Count > 0)
-            {
-                var action = staticActions.First();
-                var helpText = new StringBuilder();
-                if (action.parameters == null || action.parameters.Length == 0)
-                {
-                    helpText.AppendLine($"Action: /{action.actionName}");
-                    helpText.AppendLine("Parameters: None");
-                }
-                else
-                {
-                    var paramString = TerminalHelper.FormatParameters(action.parameters);
-                    helpText.AppendLine($"Action: /{action.actionName}({paramString})");
-                    helpText.AppendLine($"Parameters: {paramString}");
-                }
-                BLogger.Log(helpText.ToString());
-                return;
-            }
-            
-            // Check if it's an instance action
-            var instanceActions = valueRegistry.GetAllInstanceActionsWithParameters()
-                .Where(a => a.actionPath.Equals(commandName, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            
-            if (instanceActions.Count > 0)
-            {
-                var action = instanceActions.First();
-                var helpText = new StringBuilder();
-                if (action.parameters == null || action.parameters.Length == 0)
-                {
-                    helpText.AppendLine($"Action: /{action.actionPath}");
-                    helpText.AppendLine("Parameters: None");
-                }
-                else
-                {
-                    var paramString = TerminalHelper.FormatParameters(action.parameters);
-                    helpText.AppendLine($"Action: /{action.actionPath}({paramString})");
-                    helpText.AppendLine($"Parameters: {paramString}");
-                }
-                BLogger.Log(helpText.ToString());
-                return;
-            }
-            
-            // Check if it's a value
-            var allStaticValues = valueRegistry.GetAllStaticValues();
-            var allInstanceValues = valueRegistry.GetAllInstanceValues();
-            
-            if (allStaticValues.Contains(commandName, StringComparer.OrdinalIgnoreCase) ||
-                allInstanceValues.Any(v => v.Equals(commandName, StringComparison.OrdinalIgnoreCase)))
-            {
-                BLogger.Log($"Value: /{commandName}");
-                return;
-            }
-            
-            BLogger.Log($"Unknown action or value: /{commandName}");
-        }
-
     }
 }

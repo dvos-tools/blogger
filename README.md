@@ -30,9 +30,10 @@ Quick access: `Tools > BLogger > Open Config`
 
 Press `~` (tilde) to open the in-game terminal. Use built-in commands:
 - `/clear` - Clear terminal output
-- `/help [command]` - Show available commands
 - `/copy` - Copy logs to clipboard
-- `/exit` - Close terminal
+- `/context` - Show current logging context
+- `/help` - Show available commands
+- `/exit` or `/quit` - Close terminal
 - `cmd/control [+ / -]` - Increase or decrease font size
 
 Press `Tab` while typing a command to see available options and auto-complete suggestions.
