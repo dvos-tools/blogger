@@ -59,9 +59,9 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                     $"[TerminalCommandRegistry] Command '{command.Name}' already registered. Overwriting.");
 
             _commands[lowerName] = command;
-            if (command.Aliases != null)
-                foreach (var alias in command.Aliases)
-                    _commands[alias.ToLower()] = command;
+            if (command.Aliases == null) return;
+            foreach (var alias in command.Aliases)
+                _commands[alias.ToLower()] = command;
         }
 
         /// <summary>
@@ -144,17 +144,17 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             }
 
             helpText.AppendLine("");
-            helpText.AppendLine("Terminal Values (@):");
-            helpText.AppendLine("  @valueName               - Display a static value");
-            helpText.AppendLine("  @Aggregate.key.value     - Display an instance value");
-            helpText.AppendLine("");
-            helpText.AppendLine("Terminal Actions (!):");
-            helpText.AppendLine("  !actionName()            - Execute a static action");
-            helpText.AppendLine("  !Aggregate.key.action(args) - Execute an instance action");
+            helpText.AppendLine("Terminal Values and Actions (/):");
+            helpText.AppendLine("  /valueName               - Display a static value");
+            helpText.AppendLine("  /Aggregate.key.value     - Display an instance value");
+            helpText.AppendLine("  /actionName()            - Execute a static action");
+            helpText.AppendLine("  /Aggregate.key.action(args) - Execute an instance action");
             helpText.AppendLine("");
             helpText.AppendLine("Examples:");
-            helpText.AppendLine("  @fps                     - Display FPS value");
-            helpText.AppendLine("  !pause(true)             - Pause the game");
+            helpText.AppendLine("  /fps                     - Display FPS value");
+            helpText.AppendLine("  /Player.test.health       - Display instance value");
+            helpText.AppendLine("  /pause(true)              - Pause the game");
+            helpText.AppendLine("  /Player.test.setHealth(100) - Execute instance action");
 
             return helpText.ToString();
         }

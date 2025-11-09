@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using com.DvosTools.blogger.Config;
@@ -45,6 +46,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             public Action onDownArrow;
             public Action onFontSizeIncrease;
             public Action onFontSizeDecrease;
+            public Action onTab;
             
             private void Update()
             {
@@ -53,6 +55,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 if (InputService.IsDownArrowPressed(config)) onDownArrow?.Invoke();
                 if (InputService.IsFontSizeIncreasePressed(config)) onFontSizeIncrease?.Invoke();
                 if (InputService.IsFontSizeDecreasePressed(config)) onFontSizeDecrease?.Invoke();
+                if (InputService.IsTabPressed(config)) onTab?.Invoke();
             }
         }
         
@@ -72,33 +75,10 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             // Create formatted log entry with terminal-style prompt
             string formattedLog = $"<color={colorCode}>{StartString} {parsedLog}</color>";
             
-            // Add to queue and manage max entries
-            _logEntries.Enqueue(formattedLog);
-            
-            // Remove old entries if we exceed max
-            while (_logEntries.Count > _config.maxOnScreenLogEntries)
-            {
-                _logEntries.Dequeue();
-            }
-            
-            // Rebuild the entire log text
-            _logBuilder.Clear();
-            foreach (var entry in _logEntries)
-            {
-                _logBuilder.AppendLine(entry);
-            }
-            
-            // Update the text component
-            _logTextComponent.text = _logBuilder.ToString();
-            
-            // Only auto-scroll if user hasn't manually scrolled up
-            if (!_scrollRect || !_autoScroll) return;
-            // Use Canvas.ForceUpdateCanvases to ensure layout is updated before scrolling
-            Canvas.ForceUpdateCanvases();
-            _scrollRect.verticalNormalizedPosition = 0f;
+            AddLogEntry(formattedLog);
         }
         
-        private void OnScrollChanged(Vector2 scrollPosition)
+        private void OnScrollChanged(Vector2 _)
         {
             // If user scrolls up from the bottom, disable auto-scroll
             // If they scroll back to the bottom, re-enable it
@@ -151,7 +131,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 {
                     _resizeHandle = resizeButton.gameObject.GetComponent<TerminalResizeHandle>();
                     if (!_resizeHandle) _resizeHandle = resizeButton.gameObject.AddComponent<TerminalResizeHandle>();
-                    _resizeHandle.Initialize(terminalPanel.GetComponent<RectTransform>(), 200f, 1000f);
+                    _resizeHandle.Initialize(terminalPanel.GetComponent<RectTransform>());
                 }
                 else
                 {
@@ -258,6 +238,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 toggleComponent.onDownArrow = NavigateHistoryDown;
                 toggleComponent.onFontSizeIncrease = IncreaseFontSize;
                 toggleComponent.onFontSizeDecrease = DecreaseFontSize;
+                toggleComponent.onTab = ShowAutoComplete;
                 
                 IsEnabled = true;
             }
@@ -278,8 +259,12 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 contextAction: _ => ShowContext(),
                 exitAction: _ => CloseTerminal()
             );
-            
-            foreach (var cmd in commands.Values) registry.RegisterCommand(new TerminalCommandRegistry.TerminalCommand(cmd.Name, cmd.Description, cmd.Usage, rawArgs => cmd.ExecuteAction(new CommandArgs(rawArgs)), cmd.Aliases));
+
+            foreach (var cmd in commands.Values)
+            {
+                registry.RegisterCommand(new TerminalCommandRegistry.TerminalCommand(cmd.Name, cmd.Description,
+                    cmd.Usage, rawArgs => cmd.ExecuteAction(new CommandArgs(rawArgs)), cmd.Aliases));
+            }
         }
         
         private void HandleHelpCommand(CommandArgs args)
@@ -407,6 +392,191 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             
             if (Mathf.Abs(newSize - currentSize) > 0.01f) _logTextComponent.fontSize = newSize;
         }
+
+        private void ShowAutoComplete()
+        {
+            if (!_isVisible || !_commandInputField) return;
+            
+            // Only show auto-complete if the input field is focused
+            if (!_commandInputField.isFocused) return;
+            string currentInput = _commandInputField.text.Trim();
+            var valueRegistry = TerminalValueRegistry.Instance;
+            var commandRegistry = TerminalCommandRegistry.Instance;
+
+            // Check if input starts with / (for values and actions)
+            if (currentInput.StartsWith("/"))
+            {
+                string pathInput = currentInput.Substring(1); // Remove / prefix
+                
+                // Check if it's an action (has parentheses) or value (no parentheses)
+                bool isAction = pathInput.Contains("(") || pathInput.Contains(")");
+                string searchInput = isAction && pathInput.Contains("(")
+                    ? pathInput.Substring(0, pathInput.IndexOf("(", StringComparison.Ordinal))
+                    : pathInput;
+                
+                // Get all values and actions
+                var allStaticValues = valueRegistry.GetAllStaticValues().ToList();
+                var allInstanceValues = valueRegistry.GetAllInstanceValues().ToList();
+                var allStaticActions = valueRegistry.GetAllStaticActionsWithParameters().ToList();
+                var allInstanceActions = valueRegistry.GetAllInstanceActionsWithParameters().ToList();
+
+                // Match values
+                var matchingValues = (string.IsNullOrWhiteSpace(searchInput) ? allStaticValues : allStaticValues.Where(v => v.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
+                    .Concat(string.IsNullOrWhiteSpace(searchInput) ? allInstanceValues : allInstanceValues.Where(v => v.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
+                    .Select(v => $"/{v}");
+
+                // Match actions
+                var matchingStaticActionStrings = (string.IsNullOrWhiteSpace(searchInput) ? allStaticActions : allStaticActions.Where(a => a.actionName.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
+                    .Select(a =>
+                    {
+                        var paramString = FormatParameters(a.parameters);
+                        return $"/{a.actionName}({paramString})";
+                    });
+                
+                var matchingInstanceActionStrings = (string.IsNullOrWhiteSpace(searchInput) ? allInstanceActions : allInstanceActions.Where(a => a.actionPath.StartsWith(searchInput, StringComparison.OrdinalIgnoreCase)))
+                    .Select(a =>
+                    {
+                        var paramString = FormatParameters(a.parameters);
+                        return $"/{a.actionPath}({paramString})";
+                    });
+                
+                var matchingActions = matchingStaticActionStrings.Concat(matchingInstanceActionStrings);
+
+                // Combine and filter based on whether we're looking for actions only
+                var allMatches = isAction ? matchingActions : matchingValues.Concat(matchingActions);
+                var sortedMatches = allMatches.OrderBy(x => x).ToList();
+
+                if (sortedMatches.Count == 0)
+                {
+                    LogDirectly(isAction ? "No matching actions found." : "No matching values or actions found.", LogType.Warning);
+                    return;
+                }
+
+                LogDirectly($"Possible {(isAction ? "actions" : "values and actions")} ({sortedMatches.Count}):", LogType.Warning);
+                foreach (var match in sortedMatches)
+                {
+                    LogDirectly($"  {match}", LogType.Warning);
+                }
+            }
+            else
+            {
+                // Handle command auto-complete
+                var allCommands = commandRegistry.GetAllCommands().ToList();
+
+                var matchingCommands = string.IsNullOrWhiteSpace(currentInput)
+                    ? allCommands
+                    : allCommands.Where(cmd =>
+                            cmd.Name.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase) ||
+                            (cmd.Aliases != null && cmd.Aliases.Any(alias =>
+                                alias.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))))
+                        .ToList();
+
+                if (matchingCommands.Count == 0)
+                {
+                    LogDirectly("No matching commands found.", LogType.Warning);
+                    return;
+                }
+
+                var commandNames = matchingCommands
+                    .SelectMany(cmd =>
+                    {
+                        var names = new List<string> { cmd.Name };
+                        if (cmd.Aliases is { Length: > 0 })
+                            names.AddRange(cmd.Aliases);
+                        return names;
+                    })
+                    .Where(name => string.IsNullOrWhiteSpace(currentInput) ||
+                                   name.StartsWith(currentInput, StringComparison.OrdinalIgnoreCase))
+                    .Distinct()
+                    .OrderBy(name => name)
+                    .ToList();
+
+                LogDirectly($"Possible commands ({commandNames.Count}):", LogType.Warning);
+                foreach (var commandName in commandNames)
+                {
+                    LogDirectly($"  {commandName}", LogType.Warning);
+                }
+            }
+        }
+
+        private string FormatParameters(ParameterInfo[] parameters)
+        {
+            if (parameters == null || parameters.Length == 0)
+                return "";
+            
+            return string.Join(", ", parameters.Select(p => 
+            {
+                var typeName = GetTypeDisplayName(p.ParameterType);
+                return $"{typeName}";
+            }));
+        }
+
+        private string GetTypeDisplayName(Type type)
+        {
+            // Handle generic types
+            if (type.IsGenericType)
+            {
+                var genericArgs = type.GetGenericArguments();
+                var baseName = type.Name.Split('`')[0];
+                var args = string.Join(", ", genericArgs.Select(GetTypeDisplayName));
+                return $"{baseName}<{args}>";
+            }
+            
+            // Handle arrays
+            if (!type.IsArray)
+                return type.Name switch
+                {
+                    "Int32" => "int",
+                    "Int64" => "long",
+                    "Single" => "float",
+                    "Double" => "double",
+                    "Boolean" => "bool",
+                    "String" => "string",
+                    "Object" => "object",
+                    _ => type.Name
+                };
+            var elementType = type.GetElementType();
+            return $"{GetTypeDisplayName(elementType)}[]";
+
+            // Handle common types with shorter names
+        }
+
+        private void LogDirectly(string message, LogType logType)
+        {
+            if (!IsEnabled || !_logTextComponent) return;
+
+            // Format the log entry with color based on type (without parsing tokens)
+            string colorCode = TerminalHelper.GetColorForLogType(logType);
+            string formattedLog = $"<color={colorCode}>{StartString} {message}</color>";
+            
+            AddLogEntry(formattedLog);
+        }
+
+        private void AddLogEntry(string formattedLog)
+        {
+            _logEntries.Enqueue(formattedLog);
+            
+            // Remove old entries if we exceed max
+            while (_logEntries.Count > _config.maxOnScreenLogEntries)
+            {
+                _logEntries.Dequeue();
+            }
+            
+            // Rebuild the entire log text
+            _logBuilder.Clear();
+            foreach (var entry in _logEntries)
+            {
+                _logBuilder.AppendLine(entry);
+            }
+            
+            // Update the text component
+            _logTextComponent.text = _logBuilder.ToString();
+            
+            // Only auto-scroll if user hasn't manually scrolled up
+            if (!_scrollRect || !_autoScroll) return;
+            Canvas.ForceUpdateCanvases();
+            _scrollRect.verticalNormalizedPosition = 0f;
+        }
         
         private void ProcessCommand(string command)
         {
@@ -415,9 +585,8 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             // Try to execute as a registered command first
             if (registry.TryExecuteCommand(command, out _)) return;
             
-            // Check if command contains @ or ! tokens
-            bool hasTokens = command.Contains("@") || command.Contains("!");
-            if (hasTokens)
+            // Check if command starts with / (for values and actions)
+            if (command.StartsWith("/"))
             {
                 // Validate syntax before processing
                 if (!ValidateTokenSyntax(command, out string syntaxError))
@@ -427,7 +596,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 }
                 
                 // Process tokens and display results through the logger
-                // The ParseTerminalTokensAndActions method will handle @values and !actions
+                // The ParseTerminalTokensAndActions method will handle /values and /actions
                 BLogger.Log(command);
             }
             else
@@ -441,24 +610,26 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         {
             error = null;
             
+            // Check if input starts with /
+            if (!input.StartsWith("/")) return true;
+            
             // Check for unmatched parentheses in actions
-            if (!input.Contains("!")) return true;
             int openParens = input.Count(c => c == '(');
             int closeParens = input.Count(c => c == ')');
                 
             if (openParens != closeParens)
             {
-                error = "Unmatched parentheses in action syntax. Expected format: !action(args)";
+                error = "Unmatched parentheses in action syntax. Expected format: /action(args)";
                 return false;
             }
                 
-            // Check if action has parentheses
-            // Look for ! followed by identifier that ends without a parenthesis
-            // (?![(\w\.]) ensures we're at the end of the identifier and there's no opening paren
-            var actionRegex = new Regex(@"![\w\.]+(?![(\w\.])");
-            if (!actionRegex.IsMatch(input)) return true;
+            // Check if action has parentheses but is malformed
+            // Look for / followed by identifier that ends without a parenthesis when parentheses are present
+            if (openParens <= 0) return true;
+            var actionRegex = new Regex(@"/[\w\.]+\([^\)]*\)");
             
-            error = $"Failed to Parse: {input} Actions require parentheses. Expected format: !action() or !action(args)";
+            if (actionRegex.IsMatch(input)) return true;
+            error = $"Failed to Parse: {input} Actions require parentheses. Expected format: /action() or /action(args)";
             return false;
 
         }
@@ -518,16 +689,22 @@ namespace com.DvosTools.blogger.Handlers.Terminal
             if (string.IsNullOrEmpty(input))
                 return input;
 
-            // First, handle actions (!actionName(args))
-            if (input.Contains("!"))
+            // Handle / prefix for both values and actions
+            if (!input.StartsWith("/")) return input;
+            
+            string path = input.Substring(1); // Remove / prefix
+            
+            // Check if it's an action (has parentheses) or a value (no parentheses)
+            if (path.Contains("(") && path.Contains(")"))
             {
-                var actionRegex = new Regex(@"!([\w\.]+\([^\)]*\))");
+                // It's an action: /Player.test.setHealth(100)
+                var actionRegex = new Regex(@"/([\w\.]+\([^\)]*\))");
                 input = actionRegex.Replace(input, match =>
                 {
                     var actionToken = match.Groups[1].Value;
 
                     if (!TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
-                        return $"<color=red>Unknown action: \"!{actionToken}\"</color>";
+                        return $"<color=red>Unknown action: \"/{actionToken}\"</color>";
                     
                     // Colorize the action path
                     var colorizedAction = ColorizeActionPath(actionToken);
@@ -538,30 +715,28 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                     // Escape result string for display
                     resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
                     return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
-
                 });
             }
-
-            // Then, handle value tokens (@valueName)
-            if (!input.Contains("@")) return input;
-            
-            var valueRegex = new Regex(@"@([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
-            input = valueRegex.Replace(input, match =>
+            else
             {
-                var token = match.Groups[1].Value;
+                // It's a value: /Player.test.health or /fps
+                var valueRegex = new Regex(@"/([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
+                input = valueRegex.Replace(input, match =>
+                {
+                    var token = match.Groups[1].Value;
 
-                if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
-                    return $"<color=red>Unknown token: @{token}</color>";
+                    if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
+                        return $"<color=red>Unknown token: /{token}</color>";
                 
-                var valueStr = value?.ToString() ?? "null";
-                // Escape value string for display
-                valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
+                    var valueStr = value?.ToString() ?? "null";
+                    // Escape value string for display
+                    valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
                     
-                // Colorize the value path
-                var colorizedToken = TerminalHelper.ColorizeValuePath(token);
-                return $"<color=red>@</color>{colorizedToken}<color=white>=</color>{valueStr}";
-
-            });
+                    // Colorize the value path
+                    var colorizedToken = TerminalHelper.ColorizeValuePath(token);
+                    return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
+                });
+            }
 
             return input;
         }

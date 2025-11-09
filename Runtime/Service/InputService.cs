@@ -72,6 +72,18 @@ namespace com.DvosTools.blogger.Service
                 : CheckNewInputFontSizeDecrease(config);
         }
 
+        /// <summary>
+        /// Check if the Tab key was pressed this frame.
+        /// </summary>
+        /// <param name="config">BLogger configuration containing input system type</param>
+        /// <returns>True if the Tab key was pressed this frame</returns>
+        public static bool IsTabPressed(BLoggerConfig config)
+        {
+            return config.inputSystemType == InputSystemType.LegacyInputManager
+                ? Input.GetKeyDown(KeyCode.Tab)
+                : CheckNewInputTab();
+        }
+
         private static bool CheckLegacyFontSizeIncrease(BLoggerConfig config)
         {
             bool modifierPressed = config.useCommandKeyForFontSize
@@ -104,6 +116,11 @@ namespace com.DvosTools.blogger.Service
         private static bool CheckNewInputDownArrow()
         {
             return Keyboard.current != null && Keyboard.current.downArrowKey.wasPressedThisFrame;
+        }
+
+        private static bool CheckNewInputTab()
+        {
+            return Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame;
         }
 
         private static bool CheckNewInputFontSizeIncrease(BLoggerConfig config)
@@ -140,6 +157,11 @@ namespace com.DvosTools.blogger.Service
         }
 
         private static bool CheckNewInputDownArrow()
+        {
+            return false;
+        }
+
+        private static bool CheckNewInputTab()
         {
             return false;
         }

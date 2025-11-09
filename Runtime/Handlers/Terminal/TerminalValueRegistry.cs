@@ -262,7 +262,7 @@ public class TerminalValueRegistry
 
         switch (parts.Length)
         {
-            // Static value: @fps
+            // Static value: /fps
             case 1:
             {
                 if (!_staticValues.TryGetValue(token, out var accessor))
@@ -275,13 +275,11 @@ public class TerminalValueRegistry
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[TerminalValueRegistry] Error accessing @{token}: {ex.Message}");
+                    Debug.LogError($"[TerminalValueRegistry] Error accessing /{token}: {ex.Message}");
                     return false;
                 }
-
-                break;
             }
-            // Instance value: @AggregateName.instanceKey.valueName
+            // Instance value: /AggregateName.instanceKey.valueName
             case 3:
             {
                 var aggregateName = parts[0];
@@ -300,11 +298,9 @@ public class TerminalValueRegistry
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[TerminalValueRegistry] Error accessing @{token}: {ex.Message}");
+                    Debug.LogError($"[TerminalValueRegistry] Error accessing /{token}: {ex.Message}");
                     return false;
                 }
-
-                break;
             }
             default:
                 return false;
@@ -314,6 +310,44 @@ public class TerminalValueRegistry
     public bool IsAggregateType(Type type)
     {
         return _aggregateTypes.Contains(type);
+    }
+
+    /// <summary>
+    /// Get all static value names (e.g., "fps" for /fps)
+    /// </summary>
+    public IEnumerable<string> GetAllStaticValues()
+    {
+        return _staticValues.Keys.OrderBy(k => k);
+    }
+
+    /// <summary>
+    /// Get all instance value paths (e.g., "Aggregate.key.value" for /Aggregate.key.value)
+    /// </summary>
+    public IEnumerable<string> GetAllInstanceValues()
+    {
+        return _instanceValues.Keys
+            .Select(k => $"{k.aggregateName}.{k.instanceKey}.{k.valueName}")
+            .OrderBy(k => k);
+    }
+
+    /// <summary>
+    /// Get all static actions with parameter information
+    /// </summary>
+    public IEnumerable<(string actionName, ParameterInfo[] parameters)> GetAllStaticActionsWithParameters()
+    {
+        return _staticActions
+            .Select(kvp => (kvp.Key, kvp.Value.Parameters))
+            .OrderBy(x => x.Key);
+    }
+
+    /// <summary>
+    /// Get all instance actions with parameter information
+    /// </summary>
+    public IEnumerable<(string actionPath, ParameterInfo[] parameters)> GetAllInstanceActionsWithParameters()
+    {
+        return _instanceActions
+            .Select(kvp => (actionPath: $"{kvp.Key.aggregateName}.{kvp.Key.instanceKey}.{kvp.Key.actionName}", parameters: kvp.Value.Parameters))
+            .OrderBy(x => x.actionPath);
     }
 
     public bool TryExecuteAction(string actionToken, out object result)
@@ -333,13 +367,13 @@ public class TerminalValueRegistry
 
             if (pathParts.Length == 1)
             {
-                // Static action: !pause(true)
+                // Static action: /pause(true)
                 if (!_staticActions.TryGetValue(pathParts[0], out invoker))
                     return false;
             }
             else if (pathParts.Length == 3)
             {
-                // Instance action: !Players.player1.heal(50)
+                // Instance action: /Players.player1.heal(50)
                 var aggregateName = pathParts[0];
                 var instanceKey = pathParts[1];
                 var actionName = pathParts[2];
