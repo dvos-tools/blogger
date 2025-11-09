@@ -1,5 +1,13 @@
 
 
+## [1.9.11] - 2025-11-09
+
+- feat: auto complete for commands (#22)
+- bump: update version and changelog [skip ci]
+- docs: Add screenshot to README for BLogger
+- bump: update version and changelog [skip ci]
+- fix: rate-limit only on Loki
+
 ## [1.9.10] - 2025-11-08
 
 - docs: Add screenshot to README for BLogger
