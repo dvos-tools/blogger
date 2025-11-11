@@ -653,7 +653,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 var colorizedAction = ColorizeActionPath(actionToken);
                 if (result == null) return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
 
-                var resultStr = result.ToString();
+                var resultStr = TerminalHelper.FormatValue(result);
                 resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
                 return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
             });
@@ -670,7 +670,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                     if (result == null)
                         return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
 
-                    var resultStr = result.ToString();
+                    var resultStr = TerminalHelper.FormatValue(result);
                     resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
                     return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
                 }
@@ -678,7 +678,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 // Try as value
                 if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
                     return $"<color=red>Unknown token: /{token}</color>";
-                var valueStr = value?.ToString() ?? "null";
+                var valueStr = TerminalHelper.FormatValue(value);
                 valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
                 var colorizedToken = TerminalHelper.ColorizeValuePath(token);
                 return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
