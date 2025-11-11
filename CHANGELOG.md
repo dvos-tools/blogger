@@ -1,5 +1,9 @@
 
 
+## [1.9.12] - 2025-11-11
+
+- feat: adding deserialzer of complex objects (#23)
+
 ## [1.9.11] - 2025-11-09
 
 - feat: auto complete for commands (#22)
