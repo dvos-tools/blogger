@@ -627,64 +627,108 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         private string ParseTerminalTokensAndActions(string input)
         {
-            if (string.IsNullOrEmpty(input))
-                return input;
+            if (string.IsNullOrEmpty(input)) return input;
 
             // Don't parse if input already contains HTML tags (already formatted)
-            if (input.Contains("<color") || input.Contains("</color>"))
-                return input;
+            if (input.Contains("<color") || input.Contains("</color>")) return input;
 
             // Handle / prefix for both values and actions
             if (!input.StartsWith("/")) return input;
 
-            // Match either action with parentheses or value/action without parentheses
-            // Use negative lookbehind to avoid matching inside HTML tags
-            var actionWithParamsRegex = new Regex(@"(?<!<[^>]*)/([\w\.]+\([^\)]*\))");
-            var valueOrActionRegex = new Regex(@"(?<!<[^>]*)/([\w]+(?:\.[\w]+(?:\.[\w]+)?)?)");
+            // Extract action calls manually to handle nested parentheses correctly
+            // The regex approach doesn't handle nested parens well, so we'll do it manually
+            var result = new StringBuilder();
+            int i = 0;
 
-            // First, handle actions with parentheses
-            input = actionWithParamsRegex.Replace(input, match =>
+            while (i < input.Length)
             {
-                var actionToken = match.Groups[1].Value;
+                if (input[i] == '/' && (i == 0 || input[i - 1] != '<'))
+                {
+                    // Try to extract an action call
+                    int pathStart = i + 1;
+                    int pathEnd = pathStart;
 
-                if (!TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var result))
-                    return $"<color=red>Unknown action: \"/{actionToken}\"</color>";
+                    // Find the path (word characters, dots, underscores)
+                    while (pathEnd < input.Length && 
+                           (char.IsLetterOrDigit(input[pathEnd]) || input[pathEnd] == '_' || input[pathEnd] == '.'))
+                    {
+                        pathEnd++;
+                    }
 
-                var colorizedAction = ColorizeActionPath(actionToken);
-                if (result == null) return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
+                    if (pathEnd > pathStart && pathEnd < input.Length && input[pathEnd] == '(')
+                    {
+                        // Found an action with parentheses - extract everything up to the last )
+                        int openParen = pathEnd;
+                        int closeParen = input.LastIndexOf(')');
+                        
+                        if (closeParen > openParen)
+                        {
+                            string actionToken = input.Substring(pathStart, closeParen - pathStart + 1);
+                            
+                            if (TerminalValueRegistry.Instance.TryExecuteAction(actionToken, out var actionResult))
+                            {
+                                var colorizedAction = ColorizeActionPath(actionToken);
+                                if (actionResult == null)
+                                    result.Append($"<color=red>Executed action: </color> {colorizedAction} [Action executed]");
+                                else
+                                {
+                                    var resultStr = TerminalHelper.FormatValue(actionResult);
+                                    resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
+                                    result.Append($"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]");
+                                }
+                                i = closeParen + 1;
+                                continue;
+                            }
+                            else
+                            {
+                                result.Append($"<color=red>Unknown action: \"/{actionToken}\"</color>");
+                                i = closeParen + 1;
+                                continue;
+                            }
+                        }
+                    }
+                    else if (pathEnd > pathStart)
+                    {
+                        // Simple token without parentheses
+                        string token = input.Substring(pathStart, pathEnd - pathStart);
+                        string replacement = ProcessActionOrValue(token);
+                        result.Append(replacement);
+                        i = pathEnd;
+                        continue;
+                    }
+                }
+
+                result.Append(input[i]);
+                i++;
+            }
+
+            input = result.ToString();
+
+            return input;
+        }
+
+        private string ProcessActionOrValue(string token)
+        {
+            // Try as action first (actions without parameters)
+            if (TerminalValueRegistry.Instance.TryExecuteAction(token, out var result))
+            {
+                var colorizedAction = ColorizeActionPath(token);
+                if (result == null)
+                    return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
 
                 var resultStr = TerminalHelper.FormatValue(result);
                 resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
                 return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
-            });
+            }
 
-            // Then, handle values and actions without parentheses (try action first, then value)
-            input = valueOrActionRegex.Replace(input, match =>
-            {
-                var token = match.Groups[1].Value;
+            // Try as value
+            if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
+                return $"<color=red>Unknown token: /{token}</color>";
 
-                // Try as action first (actions without parameters)
-                if (TerminalValueRegistry.Instance.TryExecuteAction(token, out var result))
-                {
-                    var colorizedAction = ColorizeActionPath(token);
-                    if (result == null)
-                        return $"<color=red>Executed action: </color> {colorizedAction} [Action executed]";
-
-                    var resultStr = TerminalHelper.FormatValue(result);
-                    resultStr = resultStr.Replace("<", "&lt;").Replace(">", "&gt;");
-                    return $"<color=red>Executed action: </color> {colorizedAction} [Returned: {resultStr}]";
-                }
-
-                // Try as value
-                if (!TerminalValueRegistry.Instance.TryGetValue(token, out var value))
-                    return $"<color=red>Unknown token: /{token}</color>";
-                var valueStr = TerminalHelper.FormatValue(value);
-                valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
-                var colorizedToken = TerminalHelper.ColorizeValuePath(token);
-                return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
-            });
-
-            return input;
+            var valueStr = TerminalHelper.FormatValue(value);
+            valueStr = valueStr.Replace("<", "&lt;").Replace(">", "&gt;");
+            var colorizedToken = TerminalHelper.ColorizeValuePath(token);
+            return $"<color=red>/</color>{colorizedToken}<color=white>=</color>{valueStr}";
         }
 
 

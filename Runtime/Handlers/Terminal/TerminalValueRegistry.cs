@@ -356,55 +356,99 @@ public class TerminalValueRegistry
 
         try
         {
-            var parsed = InputParserService.ParseActionCall(actionToken);
-            if (parsed == null)
-                return false;
+            var openParen = actionToken.IndexOf('(');
+            var closeParen = actionToken.LastIndexOf(')');
 
-            ActionInvoker invoker;
+            if (openParen == -1 || closeParen == -1 || closeParen <= openParen)
+            {
+                // No parameters
+                ActionInvoker invoker;
+
+                var pathParts = actionToken.Split('.');
+                switch (pathParts.Length)
+                {
+                    case 1:
+                    {
+                        if (!_staticActions.TryGetValue(pathParts[0], out invoker))
+                            return false;
+                        break;
+                    }
+                    case 3:
+                    {
+                        var aggregateName = pathParts[0];
+                        var instanceKey = pathParts[1];
+                        var actionName = pathParts[2];
+                        var key = (aggregateName, instanceKey, actionName);
+                        if (!_instanceActions.TryGetValue(key, out invoker))
+                            return false;
+                        break;
+                    }
+                    default:
+                        return false;
+                }
+
+                if (invoker.Parameters.Length != 0)
+                    return false;
+
+                result = invoker.Invoke(Array.Empty<object>());
+                return true;
+            }
+
+            var pathOnly = actionToken.Substring(0, openParen);
+            var argsString = actionToken.Substring(openParen + 1, closeParen - openParen - 1).Trim();
+
+            ActionInvoker invoker2;
 
             // Check if it's a static action or instance action
-            var pathParts = parsed.Path.Split('.');
+            var pathParts2 = pathOnly.Split('.');
 
-            if (pathParts.Length == 1)
+            switch (pathParts2.Length)
             {
-                // Static action: /pause(true)
-                if (!_staticActions.TryGetValue(pathParts[0], out invoker))
+                case 1:
+                {
+                    // Static action: /pause(true)
+                    if (!_staticActions.TryGetValue(pathParts2[0], out invoker2))
+                        return false;
+                    break;
+                }
+                case 3:
+                {
+                    // Instance action: /Players.player1.heal(50)
+                    var aggregateName = pathParts2[0];
+                    var instanceKey = pathParts2[1];
+                    var actionName = pathParts2[2];
+
+                    var key = (aggregateName, instanceKey, actionName);
+                    if (!_instanceActions.TryGetValue(key, out invoker2))
+                        return false;
+                    break;
+                }
+                default:
                     return false;
             }
-            else if (pathParts.Length == 3)
-            {
-                // Instance action: /Players.player1.heal(50)
-                var aggregateName = pathParts[0];
-                var instanceKey = pathParts[1];
-                var actionName = pathParts[2];
 
-                var key = (aggregateName, instanceKey, actionName);
-                if (!_instanceActions.TryGetValue(key, out invoker))
-                    return false;
-            }
-            else
-            {
-                return false;
-            }
+            // Split arguments using parameter types to handle Vector2/Vector3 correctly
+            var arguments = string.IsNullOrEmpty(argsString)
+                ? Array.Empty<string>()
+                : InputParserService.SplitArgumentsWithTypes(argsString, invoker2.Parameters);
 
             // Convert arguments to correct types
-            var convertedArgs = new object[parsed.Arguments.Length];
-            for (int i = 0; i < parsed.Arguments.Length; i++)
+            var convertedArgs = new object[arguments.Length];
+            for (int i = 0; i < arguments.Length; i++)
             {
-                if (i >= invoker.Parameters.Length)
+                if (i >= invoker2.Parameters.Length)
                     return false;
 
-                if (!TryConvertArgument(parsed.Arguments[i], invoker.Parameters[i].ParameterType,
-                        out convertedArgs[i]))
+                if (!TryConvertArgument(arguments[i], invoker2.Parameters[i].ParameterType, out convertedArgs[i]))
                     return false;
             }
 
             // Check parameter count
-            if (convertedArgs.Length != invoker.Parameters.Length)
+            if (convertedArgs.Length != invoker2.Parameters.Length)
                 return false;
 
             // Invoke the action
-            result = invoker.Invoke(convertedArgs);
+            result = invoker2.Invoke(convertedArgs);
             return true;
         }
         catch (Exception)

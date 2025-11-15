@@ -8,9 +8,9 @@ namespace com.DvosTools.blogger.Attributes
     /// <br/>
     /// Terminal Access: 
     /// <br/>
-    /// <c>@AggregateName.instanceId.valueName</c> - Read values (see <see cref="BLoggerValueAttribute"/>)
+    /// <c>/AggregateName.instanceId.valueName</c> - Read values (see <see cref="BLoggerValueAttribute"/>)
     /// <br/>
-    /// <c>!AggregateName.instanceId.actionName(args)</c> - Execute actions (see <see cref="BLoggerActionAttribute"/>)
+    /// <c>/AggregateName.instanceId.actionName(args)</c> - Execute actions (see <see cref="BLoggerActionAttribute"/>)
     /// </summary>
     /// <example>
     /// <code>
@@ -27,7 +27,7 @@ namespace com.DvosTools.blogger.Attributes
     ///     public void Heal(int amount) => Health += amount;
     /// }
     /// 
-    /// // Usage: @Players.player1.health or !Players.player1.heal(50)
+    /// // Usage: /Players.player1.health or /Players.player1.heal(50)
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
