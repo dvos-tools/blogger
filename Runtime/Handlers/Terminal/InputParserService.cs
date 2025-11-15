@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Text;
+using UnityEngine;
 
 namespace com.DvosTools.blogger.Handlers.Terminal
 {
@@ -81,7 +81,18 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         }
 
         /// <summary>
-        /// Splits comma-separated arguments respecting quotes and nested brackets/parentheses.
+        /// Splits comma-separated arguments respecting quotes, parentheses, and brackets.
+        /// Brackets [1,2,3] are treated as a single argument (useful for Vector2/Vector3).
+        /// </summary>
+        public static string[] SplitArgumentsWithTypes(string argsString, System.Reflection.ParameterInfo[] parameters)
+        {
+            // Use the standard SplitArguments which already handles brackets correctly
+            return SplitArguments(argsString);
+        }
+
+        /// <summary>
+        /// Splits comma-separated arguments respecting quotes, parentheses, and brackets.
+        /// Brackets [1,2,3] are treated as a single argument (useful for Vector2/Vector3).
         /// For more robust parsing, consider using Microsoft.CodeAnalysis.CSharp (Roslyn) or a regex solution.
         /// </summary>
         private static string[] SplitArguments(string argsString)
@@ -95,21 +106,23 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
             foreach (var c in argsString)
             {
-                if (c == '"' && !state.IsEscaped)
+                switch (c)
                 {
-                    state.InQuotes = !state.InQuotes;
-                    current.Append(c);
-                }
-                else if (c == ',' && state.CanSplit)
-                {
-                    AddArgument(args, current);
-                }
-                else
-                {
-                    if (!state.InQuotes)
-                        state.UpdateDepth(c);
+                    case '"' when !state.IsEscaped:
+                        state.InQuotes = !state.InQuotes;
+                        current.Append(c);
+                        break;
+                    case ',' when state.CanSplit:
+                        AddArgument(args, current);
+                        break;
+                    default:
+                    {
+                        if (!state.InQuotes)
+                            state.UpdateDepth(c);
                     
-                    current.Append(c);
+                        current.Append(c);
+                        break;
+                    }
                 }
 
                 state.IsEscaped = c == '\\' && !state.IsEscaped;
@@ -121,28 +134,24 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         private static void AddArgument(List<string> args, StringBuilder current)
         {
-            if (current.Length > 0)
-            {
-                args.Add(current.ToString().Trim());
-                current.Clear();
-            }
+            if (current.Length <= 0) return;
+            
+            args.Add(current.ToString().Trim());
+            current.Clear();
         }
 
 
         public static object TryParseUnityType(string rawArg, Type targetType)
         {
-            if (targetType == typeof(Vector2))
-                return TryParseVector2(rawArg);
-
-            if (targetType == typeof(Vector3))
-                return TryParseVector3(rawArg);
-
-            return null;
+            if (targetType == typeof(Vector2)) return TryParseVector2(rawArg);
+            return targetType == typeof(Vector3) ? TryParseVector3(rawArg) : null;
         }
         
         public static Vector2? TryParseVector2(string rawArg)
         {
-            var parts = rawArg.Split(',');
+            // Strip brackets if present: [1,2] -> 1,2
+            var cleaned = StripBrackets(rawArg.Trim());
+            var parts = cleaned.Split(',');
             if (parts.Length == 2 && 
                 float.TryParse(parts[0].Trim(), out var x) && 
                 float.TryParse(parts[1].Trim(), out var y))
@@ -154,7 +163,9 @@ namespace com.DvosTools.blogger.Handlers.Terminal
 
         public static Vector3? TryParseVector3(string rawArg)
         {
-            var parts = rawArg.Split(',');
+            // Strip brackets if present: [1,2,3] -> 1,2,3
+            var cleaned = StripBrackets(rawArg.Trim());
+            var parts = cleaned.Split(',');
             if (parts.Length == 3 && 
                 float.TryParse(parts[0].Trim(), out var x) && 
                 float.TryParse(parts[1].Trim(), out var y) && 
@@ -175,21 +186,31 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         }
 
         /// <summary>
+        /// Strips outer brackets from an argument if present.
+        /// Example: "[1,2,3]" -> "1,2,3"
+        /// </summary>
+        public static string StripBrackets(string arg)
+        {
+            if (string.IsNullOrEmpty(arg)) return arg;
+
+            var trimmed = arg.Trim();
+            if (trimmed.StartsWith("[") && trimmed.EndsWith("]") && trimmed.Length >= 2)
+                return trimmed.Substring(1, trimmed.Length - 2).Trim();
+            return arg;
+        }
+
+        /// <summary>
         /// Removes parentheses and parameters from an action string.
         /// Example: "action(bool)" -> "action"
         /// </summary>
         public static string RemoveParenthesesAndParameters(string input)
         {
-            if (string.IsNullOrEmpty(input))
-                return input;
+            if (string.IsNullOrEmpty(input)) return input;
+            if (!input.Contains("(") || !input.Contains(")")) return input;
+            
+            int openParenIndex = input.IndexOf("(", StringComparison.Ordinal);
+            return input.Substring(0, openParenIndex);
 
-            if (input.Contains("(") && input.Contains(")"))
-            {
-                int openParenIndex = input.IndexOf("(", StringComparison.Ordinal);
-                return input.Substring(0, openParenIndex);
-            }
-
-            return input;
         }
 
         private class ParserState
