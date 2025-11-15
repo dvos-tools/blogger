@@ -19,7 +19,7 @@ namespace com.DvosTools.blogger.Attributes
     ///     public int Health = 100;
     /// }
     /// 
-    /// // Access: @Players.player1.health
+    /// // Access: /Players.player1.health
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]

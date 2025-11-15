@@ -3,7 +3,7 @@ using System;
 namespace com.DvosTools.blogger.Attributes
 {
     /// <summary>
-    /// Marks a field, property, or parameterless method as accessible via <c>@valueName</c> tokens in the terminal.
+    /// Marks a field, property, or parameterless method as accessible via <c>/valueName</c> tokens in the terminal.
     /// <br/>
     /// Works on both static members (global) and instance members (within <see cref="BLoggerAggregateAttribute"/> classes).
     /// </summary>
@@ -22,7 +22,7 @@ namespace com.DvosTools.blogger.Attributes
     ///     [BLoggerValue("position")]
     ///     public Vector3 Position => transform.position;
     /// }
-    /// // Usage: @Players.player1.health
+    /// // Usage: /Players.player1.health
     /// 
     /// // Static values (global)
     /// public static class GameStats
@@ -30,7 +30,7 @@ namespace com.DvosTools.blogger.Attributes
     ///     [BLoggerValue("fps")]
     ///     public static float FPS => 1f / Time.deltaTime;
     /// }
-    /// // Usage: @fps
+    /// // Usage: /fps
     /// </code>
     /// </example>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = false)]

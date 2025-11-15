@@ -63,6 +63,7 @@ public class PlayerStats : BLoggerMonoBehaviour
 // Terminal Usage:
 // "/Players.player1.health"      -> Shows current health value
 // "/Players.player1.Heal(50)"    -> Heals player1 by 50 HP
+// "/Players.player1.spawn("enemy", [1,2,3])" -> Vector2/Vector3 use bracket notation
 ```
 
 ## Basic Logging
