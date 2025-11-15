@@ -1,5 +1,9 @@
 
 
+## [1.9.13] - 2025-11-15
+
+- feat: adding Vector2 vector 3 support (#24)
+
 ## [1.9.12] - 2025-11-11
 
 - feat: adding deserialzer of complex objects (#23)
