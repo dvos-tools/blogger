@@ -23,7 +23,7 @@ namespace com.DvosTools.blogger.Handlers.Terminal
         private readonly StringBuilder _logBuilder = new();
         private readonly Queue<string> _logEntries = new();
         private readonly Queue<int> _logEntryLengths = new(); // Track lengths for efficient removal
-        private bool _isVisible = true;
+        private bool _isVisible = false;
         private bool _autoScroll = true; // Track if we should auto-scroll
 
         // Command history
@@ -100,6 +100,9 @@ namespace com.DvosTools.blogger.Handlers.Terminal
                 // Instantiate terminal and navigate hierarchy: Canvas -> Terminal Panel -> Scroll View -> Viewport -> Log Text
                 _terminalInstance = UnityEngine.Object.Instantiate(_config.onScreenTerminalPrefab);
                 UnityEngine.Object.DontDestroyOnLoad(_terminalInstance);
+                
+                // Start with terminal inactive - user must press toggle key to activate
+                _terminalInstance.SetActive(false);
 
                 var terminalPanel = _terminalInstance.transform.Find("Terminal Panel");
                 var scrollView = terminalPanel.Find("Scroll View");
