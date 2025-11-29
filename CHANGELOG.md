@@ -1,5 +1,11 @@
 
 
+## [1.9.14] - 2025-11-29
+
+- fix: default to hidden for the Terminal window (#25)
+- bump: update version and changelog [skip ci]
+- feat: adding Vector2 vector 3 support (#24)
+
 ## [1.9.13] - 2025-11-15
 
 - feat: adding Vector2 vector 3 support (#24)
